@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "nefarium"
+version = "0.1.0"
+description = "nefarium provides an API similar to OAuth for websites that do not support it"
+authors = ["Parker Wahle <regulad@regulad.xyz>"]
+readme = "README.md"
+license = "GPLv3"
+packages = [{include = "nefarium", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = {extras = ["speedups"], version = "^3.8.3"}
+authcaptureproxy = "^1.1.4"
+motor = "^3.1.1"
+pymongo = "^4.3.3"
+motor-stubs = "^1.7.1"
+
+[tool.poetry.group.dev.dependencies]
+tox = "^4.4.2"
+
+[tool.poetry.scripts]
+nefarium = "nefarium:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
