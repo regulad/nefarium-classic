@@ -36,7 +36,7 @@ class LimitedSizeDict(OrderedDict):
         super().__setitem__(key, value)
         self._check_size_limit()
 
-    def update(self, __m, **kwargs) -> None:
+    def update(self, __m, **kwargs) -> None:  # type: ignore
         super().update(__m, **kwargs)
         self._check_size_limit()
 

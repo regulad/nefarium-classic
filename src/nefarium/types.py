@@ -35,10 +35,10 @@ class Flow(TypedDict):
 class Session(TypedDict):
     _id: ObjectId
     flow_id: ObjectId
-    state: str | None
-    redirect_url: str | None
+    state: str
+    redirect_url: str
     auth_data: dict[str, str] | None
-    ip_address: str | None
+    ip_address: str
 
 
 __all__ = ("Flow", "Session")

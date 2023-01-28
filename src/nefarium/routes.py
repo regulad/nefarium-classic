@@ -29,6 +29,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from yarl import URL
 
+from .proxy import create_proxy
 from .helpers import truthy_string, LimitedSizeDict
 from .types import Flow, Session
 
@@ -109,6 +110,9 @@ async def handle_auth(request: Request) -> Response:
         {"_id": object_id}
     )
 
+    if session is None:
+        raise HTTPNotFound(reason="Session ID not found")
+
     if session["flow_id"] != flow["_id"]:
         raise HTTPBadRequest(reason="Session ID does not match Flow ID")
     elif session["state"] != "pending":
@@ -119,70 +123,9 @@ async def handle_auth(request: Request) -> Response:
 
     proxy: AuthCaptureProxy
     if session_id not in proxies:
-        proxy = AuthCaptureProxy(
-            request.url,
-            # should be called on first go, so this will be correct unless the proxy cache rolls over which should be rare
-            URL(flow["proxy_target"]),
+        proxy = create_proxy(
+            flow, session, request.url, request.app.loop, request.app["db"]["sessions"]
         )
-
-        callback_url: URL = URL(session["redirect_url"])
-
-        def check_auth_data(
-            resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-        ) -> Any | None:
-            """
-            Check if the auth data is valid. A closure that uses the flow config to determine if the auth data is valid.
-            :param resp:
-            :param data:
-            :param query:
-            :return: Auth data if valid, None otherwise. Must be JSON serializable.
-            """
-            return None  # TODO check in accordance with flow config
-
-        async def update_auth_state(auth_data: Any) -> None:
-            await request.app["db"]["sessions"].update_one(
-                {"_id": session["_id"]},
-                {"$set": {"state": "authed", "auth_data": auth_data}},
-            )
-
-        def on_auth_data(
-            resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-        ) -> URL | None:
-            """
-            A callback for AuthCaptureProxy that checks if the auth data is valid.
-            :param resp:
-            :param data:
-            :param query:
-            :return: The callback URL if auth data is valid, None otherwise
-            """
-            # store callback URL in closure
-            if auth_data := check_auth_data(resp, data, query):
-                request.app.loop.create_task(update_auth_state(auth_data))
-
-                try:
-                    del proxies[session_id]  # free to GC
-                except NameError:
-                    pass
-
-                return callback_url.with_query({"state": auth_data})
-            else:
-                return None  # can continue
-
-        def prevent_redirect_out(
-            resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-        ) -> URL | None:
-            """
-            Prevent redirecting out of the proxy target.
-            :param resp:
-            :param data:
-            :param query:
-            :return:
-            """
-            # TODO: stop cloudflare from redirecting to the proxy target
-            # maybe beautifulsoup the response and change the URLs using regex
-            return None
-
-        proxy.tests = {"test_auth": on_auth_data, "test_redirect": prevent_redirect_out}
         proxies[session_id] = proxy
     else:
         proxy = proxies[session_id]

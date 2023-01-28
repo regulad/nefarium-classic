@@ -10,11 +10,12 @@ packages = [{include = "nefarium", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 aiohttp = {extras = ["speedups"], version = "^3.8.3"}
-authcaptureproxy = "^1.1.4"
+authcaptureproxy = "^1.1.4"  # cannot be py.typed because of authcaptureproxy
 motor = "^3.1.1"
 pymongo = "^4.3.3"
 motor-stubs = "^1.7.1"
 httpx = "^0.23.3"
+yarl = "^1.8.2"
 
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.2"
