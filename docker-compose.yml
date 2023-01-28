@@ -1,0 +1,40 @@
+version: "3.8"
+x-common:
+  db-uri: &db-uri "mongodb://mongo:27017"
+services:
+  mongo:
+    image: mongo:4.4  # mongo sometimes semi-breaks on minor version bumps
+    hostname: mongo
+    restart: unless-stopped
+    volumes:
+      - mongo:/etc/mongo
+    ports:
+      - "27017:27017/tcp"
+    command: --serviceExecutor adaptive  # performance or smth for 4.4 not on 5.0
+  mongo-express:
+    image: mongo-express:latest  # still an alpha
+    restart: unless-stopped
+    ports:
+      - "8081:8081/tcp"
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_MONGODB_URL: *db-uri
+  nefarium:
+    image: ghcr.io/regulad/nefarium:main
+    build: .
+    restart: unless-stopped
+    environment:
+      # MongoDB connection
+      NEFARIUM_MONGO_DB: "nefarium"
+      NEFARIUM_MONGO_URI: *db-uri
+      # Nefarium setup -- all optional
+      # NEFARIUM_DEBUG: "true"
+      # NEFARIUM_PROXY: "http://example.com:1234"
+      # NEFARIUM_DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1234567890/abcdefg"
+    ports:
+      - "8080:8080/tcp"
+    depends_on:
+      - mongo
+volumes:
+  mongo:

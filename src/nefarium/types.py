@@ -30,6 +30,7 @@ class Flow(TypedDict):
     redirect_url_domains: list[str]
     proxy_target: str
     auth_data_goals: dict[str, str]  # TODO
+    request_proxy: str | None  # proxy for HTTPX client to connect to
 
 
 class Session(TypedDict):

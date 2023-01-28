@@ -16,12 +16,14 @@ pymongo = "^4.3.3"
 motor-stubs = "^1.7.1"
 httpx = "^0.23.3"
 yarl = "^1.8.2"
+dislog = "^2.0.0"  # cannot be py.typed because of dislog, maybe i should type it later
 
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.2"
 
 [tool.poetry.scripts]
-nefarium = "nefarium.cli:cli"
+nefarium = "nefarium.server.cli:cli"
+nefarium-start = "nefarium.server.__main__:main"
 
 [build-system]
 requires = ["poetry-core"]

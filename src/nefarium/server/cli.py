@@ -20,7 +20,7 @@ from logging import getLogger
 from urllib.parse import urlparse
 
 from .db import get_sync_database_client, get_database
-from .types import Flow
+from ..types import Flow
 
 logger = getLogger(__name__)
 
@@ -133,11 +133,45 @@ def cli() -> None:
     print()
     # TODO: ask what should be gathered from proxy request
     print()
+    request_proxy: str | None  # guaranteed to be set
+    while True:
+        print("Do you have a proxy to use? [y/N]")
+        if bool(input("> ").lower().strip() == "y"):
+            print("What is the proxy URL?")
+            proxy_url = input("> ")
+            if proxy_url:
+                try:
+                    parsed = urlparse(proxy_url.lower().strip())
+                    cleaned = parsed.geturl()
+                    if parsed.scheme and parsed.netloc:
+                        if bool(
+                            input(f'Recieved "{cleaned}", is this correct? [y/N] ')
+                            .lower()
+                            .strip()
+                            == "y"
+                        ):
+                            request_proxy = cleaned
+                            break
+                        else:
+                            continue
+                    else:
+                        raise ValueError
+                except ValueError:
+                    print("Could not decompose URL! Enter again.")
+                    continue
+            else:
+                print("You must enter a proxy URL!")
+                continue
+        else:
+            request_proxy = None
+            break
+    print()
     final_dict: Flow = {  # type: ignore
         "name": name,
         "description": description,
         "redirect_url_domains": redirect_url_domains,
         "proxy_target": proxy_target,
+        "request_proxy": request_proxy,
         "auth_data_goals": {},  # TODO: add auth data goals
     }
     print("Final flow:")

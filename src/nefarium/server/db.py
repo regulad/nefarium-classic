@@ -26,11 +26,17 @@ from motor.motor_asyncio import (
 from pymongo import MongoClient
 from pymongo.database import Database
 
+from ..helpers import truthy_string
+
 logger = getLogger(__name__)
 
 
 def _get_database_uri(uri: str | None = None) -> str:
-    return uri or environ.get("NEFARIUM_MONGO_URI") or "mongodb://localhost:27017"
+    return (
+        uri
+        or truthy_string(environ.get("NEFARIUM_MONGO_URI"))  # type: ignore
+        or "mongodb://localhost:27017"
+    )
 
 
 def get_sync_database_client(*, uri: str | None = None) -> MongoClient:
@@ -64,7 +70,7 @@ def get_database(client: AsyncIOMotorClient, *, db: str) -> AsyncIOMotorDatabase
 def get_database(
     client: AsyncIOMotorClient | MongoClient, *, db: str | None = None
 ) -> AsyncIOMotorDatabase | Database:
-    db = db or environ.get("NEFARIUM_MONGO_DB") or "nefarium"
+    db = db or truthy_string(environ.get("NEFARIUM_MONGO_DB")) or "nefarium"  # type: ignore
 
     return client[db]
 

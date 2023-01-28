@@ -15,21 +15,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from logging import DEBUG, basicConfig, INFO
-from os import environ
+from logging import getLogger
 
-from aiohttp.web import run_app
+from aiohttp.web import Application
 
-from . import *
+from .db import *
+from .routes import *
+from ..helpers import LimitedSizeDict
 
-
-def main() -> None:
-    debug: bool = "NEFARIUM_DEBUG" in environ
-
-    basicConfig(level=DEBUG if debug else INFO)
-
-    run_app(app_factory())
+logger = getLogger(__name__)
 
 
-if __name__ == "__main__":
-    main()
+async def app_factory() -> Application:
+    app = Application()
+
+    app["db_client"] = get_async_database_client()
+    app["db"] = get_database(app["db_client"])
+
+    # can't store these in db because they can't be serialized, and I imagine they are also big in memory
+    app["auth_capture_proxies"] = LimitedSizeDict(size_limit=200)
+
+    app.add_routes(routes)
+
+    return app
+
+
+__all__ = ("app_factory",)

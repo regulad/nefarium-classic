@@ -15,29 +15,4 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from logging import getLogger
-
-from aiohttp.web import Application
-
-from .db import *
-from .helpers import LimitedSizeDict
-from .routes import *
-
-logger = getLogger(__name__)
-
-
-async def app_factory() -> Application:
-    app = Application()
-
-    app["db_client"] = get_async_database_client()
-    app["db"] = get_database(app["db_client"])
-
-    # can't store these in db because they can't be serialized, and I imagine they are also big in memory
-    app["auth_capture_proxies"] = LimitedSizeDict(size_limit=50)
-
-    app.add_routes(routes)
-
-    return app
-
-
-__all__ = ("app_factory",)
+# TODO

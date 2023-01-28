@@ -14,19 +14,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
+
 from asyncio import AbstractEventLoop
+from logging import getLogger
+from os import environ
 from typing import Any, Text
 
 import httpx
-from yarl import URL
-from logging import getLogger
-
-from motor.motor_asyncio import AsyncIOMotorCollection
 from authcaptureproxy import AuthCaptureProxy
+from motor.motor_asyncio import AsyncIOMotorCollection
+from yarl import URL
 
-from .types import *
+from ..helpers import truthy_string
+from ..types import *
 
 logger = getLogger(__name__)
+
+
+def get_httpx_client(flow: Flow) -> httpx.AsyncClient:
+    proxies = {}
+    if (proxy := truthy_string(flow.get("request_proxy"))) is not None:  # type: ignore # manually checked
+        proxies["http"] = proxy
+        proxies["https"] = proxy
+        logger.warning(
+            f"Using proxy from flow config: {proxy}. This could get overwritten by AuthCaptureProxy."
+        )
+    elif (proxy := truthy_string(environ.get("NEFARIUM_PROXY"))) is not None:  # type: ignore # manually checked
+        proxies["http"] = proxy
+        proxies["https"] = proxy
+        logger.warning(
+            f"Using proxy from environment variable: {proxy}. This could get overwritten by AuthCaptureProxy."
+        )
+
+    return httpx.AsyncClient(proxies=proxies or None)  # type: ignore # manually checked
 
 
 def create_proxy(
@@ -40,6 +60,8 @@ def create_proxy(
         base_url,
         # should be called on first go, so this will be correct unless the proxy cache rolls over which should be rare
         URL(flow["proxy_target"]),
+        #    session=get_httpx_client(flow),
+        # note: this client may get clobbered by the AuthCaptureProxy so proxies may be unreliable?
     )
 
     callback_url: URL = URL(session["redirect_url"])

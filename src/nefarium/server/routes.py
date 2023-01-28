@@ -16,12 +16,15 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Text, Any
 from urllib.parse import urlparse
 
-import httpx
 from aiohttp.web import RouteTableDef
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPNotFound, HTTPFound
+from aiohttp.web_exceptions import (
+    HTTPBadRequest,
+    HTTPNotFound,
+    HTTPFound,
+    HTTPInternalServerError,
+)
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from authcaptureproxy import AuthCaptureProxy
@@ -29,9 +32,9 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from yarl import URL
 
+from ..helpers import truthy_string, LimitedSizeDict
 from .proxy import create_proxy
-from .helpers import truthy_string, LimitedSizeDict
-from .types import Flow, Session
+from ..types import Flow, Session
 
 routes = RouteTableDef()
 
@@ -130,7 +133,11 @@ async def handle_auth(request: Request) -> Response:
     else:
         proxy = proxies[session_id]
 
-    return await proxy.all_handler(request)
+    try:
+        return await proxy.all_handler(request)
+    except Exception as e:
+        logger.exception("Error in proxy handler!")
+        raise HTTPInternalServerError(reason="Failed to pass login data back!") from e
 
 
 routes.view("/flows/{flow_id}/session/{session_id}/auth")(handle_auth)
