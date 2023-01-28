@@ -15,29 +15,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+from collections import OrderedDict
 from logging import getLogger
-
-from aiohttp.web import Application
-
-from .db import *
-from .helpers import LimitedSizeDict
-from .routes import *
 
 logger = getLogger(__name__)
 
 
-async def app_factory() -> Application:
-    app = Application()
-
-    app["db_client"] = get_async_database_client()
-    app["db"] = get_database(app["db_client"])
-
-    # can't store these in db because they can't be serialized, and I imagine they are also big in memory
-    app["auth_capture_proxies"] = LimitedSizeDict(size_limit=50)
-
-    app.add_routes(routes)
-
-    return app
+def truthy_string(value: str) -> str | None:
+    return value if value else None
 
 
-__all__ = ("app_factory",)
+class LimitedSizeDict(OrderedDict):
+    # https://stackoverflow.com/questions/2437617/how-to-limit-the-size-of-a-dictionary
+    def __init__(self, *args, **kwargs):
+        self.size_limit = kwargs.pop("size_limit", None)
+        super().__init__(*args, **kwargs)
+        self._check_size_limit()
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._check_size_limit()
+
+    def update(self, __m, **kwargs) -> None:
+        super().update(__m, **kwargs)
+        self._check_size_limit()
+
+    def _check_size_limit(self):
+        if self.size_limit is not None:
+            while len(self) > self.size_limit:
+                self.popitem(last=False)
+
+
+__all__ = ("LimitedSizeDict", "truthy_string")

@@ -15,9 +15,30 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from .app_factory import *
-from .cli import *
-from .db import *
-from .helpers import *
-from .routes import *
-from .types import *
+from logging import getLogger
+from typing import TypedDict
+
+from bson import ObjectId
+
+logger = getLogger(__name__)
+
+
+class Flow(TypedDict):
+    _id: ObjectId
+    name: str
+    description: str | None
+    redirect_url_domains: list[str]
+    proxy_target: str
+    auth_data_goals: dict[str, str]  # TODO
+
+
+class Session(TypedDict):
+    _id: ObjectId
+    flow_id: ObjectId
+    state: str | None
+    redirect_url: str | None
+    auth_data: dict[str, str] | None
+    ip_address: str | None
+
+
+__all__ = ("Flow", "Session")

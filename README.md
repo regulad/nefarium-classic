@@ -1,5 +1,8 @@
 # nefarium
 
+[![Project Status: Concept – Minimal or no implementation has been done yet, or the repository is only intended to be a limited example, demo, or proof-of-concept.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
+[![wakatime](https://wakatime.com/badge/github/regulad/nefarium.svg)](https://wakatime.com/badge/github/regulad/nefarium)
+
 nefarium provides an API similar to OAuth for websites that do not support it.
 
 ## Installation
@@ -10,15 +13,15 @@ nefarium provides an API similar to OAuth for websites that do not support it.
 
 ### Configuring the backend
 
-<!--TODO-->
+<!--TODO: Docker-->
 
 ### Adding login flows to your DB
 
 Use the CLI included in the package.
 
 ```bash
-nefarium connect  # this command will interactively allow you to enter MongoDB connection information and saves it to ~/.nefarium as a TOML file
-nefarium insert  # this command will interactively guide you through the process of adding a login flow to the DB
+poetry install .
+poetry run nefarium --uri <MONGODB_URI> # this command will interactively guide you through the process of adding a login flow to the DB
 ```
 
 ## Integrating nefarium login flows into your app

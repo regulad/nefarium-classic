@@ -14,36 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
-from argparse import ArgumentParser
+
+from logging import DEBUG, basicConfig, INFO
+from os import environ
 
 from aiohttp.web import run_app
 
 from . import *
 
 
-def cli() -> None:
-    parser = ArgumentParser(
-        prog="nefarium",
-        description=(
-            "nefarium  Copyright (C) 2023  Parker Wahle"
-            "This program comes with ABSOLUTELY NO WARRANTY"
-            "This is free software, and you are welcome to redistribute it"
-            "under certain conditions"
-        ),
-    )
-
-    # arguments TODO
-
-    args = parser.parse_args()
-
-    client = get_sync_database_client()
-
-    database = get_database(client)
-
-    pass  # TODO: should be able to add documents to DB
-
-
 def main() -> None:
+    debug: bool = "NEFARIUM_DEBUG" in environ
+
+    basicConfig(level=DEBUG if debug else INFO)
+
     run_app(app_factory())
 
 

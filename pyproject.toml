@@ -14,12 +14,13 @@ authcaptureproxy = "^1.1.4"
 motor = "^3.1.1"
 pymongo = "^4.3.3"
 motor-stubs = "^1.7.1"
+httpx = "^0.23.3"
 
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.2"
 
 [tool.poetry.scripts]
-nefarium = "nefarium:cli"
+nefarium = "nefarium.cli:cli"
 
 [build-system]
 requires = ["poetry-core"]
