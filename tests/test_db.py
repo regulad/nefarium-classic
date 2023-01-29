@@ -1,5 +1,5 @@
 from os import environ
-from nefarium import *
+from nefarium.server import *
 
 
 def test_environment_variable_reading():

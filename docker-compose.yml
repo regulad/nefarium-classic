@@ -1,6 +1,7 @@
 version: "3.8"
 x-common:
   db-uri: &db-uri "mongodb://mongo:27017"
+  redis-uri: &redis-uri "redis://redis:6379"
 services:
   mongo:
     image: mongo:4.4  # mongo sometimes semi-breaks on minor version bumps
@@ -20,6 +21,15 @@ services:
       - mongo
     environment:
       ME_CONFIG_MONGODB_URL: *db-uri
+  redis:
+    image: redis:7-alpine  # for space
+    hostname: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - cache:/data
   nefarium:
     image: ghcr.io/regulad/nefarium:main
     build: .
@@ -28,6 +38,8 @@ services:
       # MongoDB connection
       NEFARIUM_MONGO_DB: "nefarium"
       NEFARIUM_MONGO_URI: *db-uri
+      # Redis connection
+      NEFARIUM_REDIS_URI: *redis-uri
       # Nefarium setup -- all optional
       # NEFARIUM_DEBUG: "true"
       # NEFARIUM_PROXY: "http://example.com:1234"
@@ -36,5 +48,8 @@ services:
       - "8080:8080/tcp"
     depends_on:
       - mongo
+      - redis
 volumes:
   mongo:
+  cache:
+    driver: local

@@ -18,6 +18,7 @@ from __future__ import annotations
 from logging import getLogger
 
 from aiohttp.web import Application
+from aiohttp_session import setup as setup_session
 
 from .db import *
 from .routes import *
@@ -28,6 +29,7 @@ logger = getLogger(__name__)
 
 async def app_factory() -> Application:
     app = Application()
+    setup_session(app, await get_cookie_storage(cookie_name="__nefarium_session"))
 
     app["db_client"] = get_async_database_client()
     app["db"] = get_database(app["db_client"])

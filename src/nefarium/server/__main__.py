@@ -29,8 +29,6 @@ logger = getLogger(__name__)
 
 
 def main() -> None:
-    debug = truthy_string(environ.get("NEFARIUM_DEBUG", ""))
-
     standard_handler = StreamHandler(sys.stdout)
     error_handler = StreamHandler(sys.stderr)
 
@@ -41,7 +39,7 @@ def main() -> None:
 
     basicConfig(
         format="%(asctime)s\t%(levelname)s\t%(name)s@%(threadName)s: %(message)s",
-        level=DEBUG if debug else INFO,
+        level=DEBUG if IS_DEBUG else INFO,
         handlers=[standard_handler, error_handler],
         force=True,
     )
@@ -54,10 +52,9 @@ def main() -> None:
             level=max(
                 Logger.root.level, INFO
             ),  # DEBUG < INFO, higher is less selective and more severe
+            run_async=True,
         )
         Logger.root.addHandler(handler)
-
-    basicConfig(level=DEBUG if debug else INFO)
 
     run_app(app_factory())
 

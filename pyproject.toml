@@ -17,6 +17,13 @@ motor-stubs = "^1.7.1"
 httpx = "^0.23.3"
 yarl = "^1.8.2"
 dislog = "^2.0.0"  # cannot be py.typed because of dislog, maybe i should type it later
+beautifulsoup4 = "^4.11.1"
+types-beautifulsoup4 = "^4.11.6.4"
+cssutils = "^2.6.0"  # cannot be py.typed because of cssutils
+aiohttp-session = {extras = ["aioredis", "secure"], version = "^2.12.0"}
+cryptography = "^39.0.0"
+redis = {extras = ["hiredis"], version = "^4.4.2"}
+types-redis = "^4.4.0.4"
 
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.2"

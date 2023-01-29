@@ -16,5 +16,7 @@
 from __future__ import annotations
 
 from .app_factory import *
+from .cli import *
+from .db import *
 from .proxy import *
 from .routes import *

@@ -16,6 +16,20 @@ poetry install .
 poetry run nefarium-start
 ```
 
+## TODO
+
+Highest priority first.
+
+- [ ] Flow success cases
+- [ ] Public instance with heroku or repl.it (both?)
+- [ ] Cloudflare challenges for ChatGPT & Discord
+- [ ] Premade flows for common sites
+- [ ] Flow publishing API (for frontend)
+- [ ] Frontend for flow creation & billing
+- [ ] Flowchart of flow use
+- [ ] Code examples
+- [ ] `client` package
+
 ## Configuration
 
 ### Configuring the backend
@@ -28,9 +42,11 @@ Use the [`docker-compose.yml`](./docker-compose.yml) to configure the nefarium b
 |--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------|
 | **`NEFARIUM_MONGO_DB`**        | The MongoDB database to use for data storage. This is also respected by the configuration CLI.                                                                                                                                                                                                                                      | `nefarium`                    |
 | **`NEFARIUM_MONGO_URI`**       | The MongoDB database instance URI to connect to and use for data storage. This is respected by the configuration CLI, but manually passing a CLI argument will supercede this setting.                                                                                                                                              | `mongodb://localhost:27017`   |                                                                                
-| **`NEFARIUM_DEBUG`**           | If the `DEBUG` log level should be used over `INFO`. Unneccisary in product, but could be handy during setup.                                                                                                                                                                                                                       | Unset (False)                 |
+| **`NEFARIUM_DEBUG`**           | If the `DEBUG` log level should be used over `INFO`. Unnecessary in production, but could be handy during setup.                                                                                                                                                                                                                    | Unset (False)                 |
+| **`NEFARIUM_FAST`**            | If the computationally expensive HTML and CSS filters should be used. If this is true, just use the `regex` implementations, which are far faster, but less accurate. Use this only if your flows work with it, as it can supply a massive performance bump.                                                                        | Unset (False)                 |
 | **`NEFARIUM_PROXY`**           | Proxy to send requests data through. Should optimally be some rotating residential proxy like those provided by [Smartproxy](https://smartproxy.com), or one of your own creation. If a flow specifies a proxy, it will supercede this. <br/> *Due to a bug in authcaptureproxy, this may not always be used! Be careful of leaks!* | Attempts to read system proxy |
 | **`NEFARIUM_DISCORD_WEBHOOK`** | A Discord webhook URL to send logging messages to using [`dislog`](https://github.com/regulad/dislog). ***Optional.***                                                                                                                                                                                                              | Unset                         |
+| **`NEFARIUM_REDIS_URI`**       | The Redis URI to use for caching.                                                                                                                                                                                                                                                                                                   | `redis://localhost:6379`      |
 
 ### Adding login flows to your DB
 
@@ -47,6 +63,8 @@ poetry run nefarium --uri <MONGODB_URI> # this command will interactively guide 
 
 ```python
 from nefarium import client
+
+# TODO
 ```
 
 ### Interactive login

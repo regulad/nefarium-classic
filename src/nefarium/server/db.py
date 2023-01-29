@@ -19,6 +19,11 @@ from logging import getLogger
 from os import environ
 from typing import overload
 
+import redis.asyncio as redis
+from aiohttp_session import AbstractStorage, SimpleCookieStorage
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
+from aiohttp_session.redis_storage import RedisStorage
+from cryptography.fernet import Fernet
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
     AsyncIOMotorDatabase,
@@ -26,7 +31,7 @@ from motor.motor_asyncio import (
 from pymongo import MongoClient
 from pymongo.database import Database
 
-from ..helpers import truthy_string
+from ..helpers import truthy_string, IS_DEBUG
 
 logger = getLogger(__name__)
 
@@ -75,4 +80,21 @@ def get_database(
     return client[db]
 
 
-__all__ = ("get_async_database_client", "get_sync_database_client", "get_database")
+async def get_cookie_storage(**kwargs) -> AbstractStorage:
+    if (redis_uri := truthy_string(environ.get("NEFARIUM_REDIS_URI", ""))) is not None:
+        redis_instance = await redis.from_url(redis_uri)
+        return RedisStorage(redis_instance, **kwargs)
+    elif IS_DEBUG:
+        return SimpleCookieStorage(**kwargs)
+    else:
+        fernet_key = Fernet.generate_key()
+        fernet = Fernet(fernet_key)
+        return EncryptedCookieStorage(fernet, **kwargs)
+
+
+__all__ = (
+    "get_async_database_client",
+    "get_sync_database_client",
+    "get_database",
+    "get_cookie_storage",
+)

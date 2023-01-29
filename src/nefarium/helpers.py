@@ -17,6 +17,10 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from logging import getLogger
+from os import environ
+
+import httpx
+import yarl
 
 logger = getLogger(__name__)
 
@@ -46,4 +50,39 @@ class LimitedSizeDict(OrderedDict):
                 self.popitem(last=False)
 
 
-__all__ = ("LimitedSizeDict", "truthy_string")
+def is_url(value: str) -> bool:
+    from urllib.parse import urlparse
+
+    try:
+        result = urlparse(value)
+        return all([result.path, result.scheme or result.query])
+    except ValueError:
+        return False
+
+
+def httpx_to_yarl(url: httpx.URL) -> yarl.URL:
+    assert is_url(str(url))
+    return yarl.URL(str(url))
+
+
+def debug() -> bool:
+    return truthy_string(environ.get("NEFARIUM_DEBUG", "")) is not None
+
+
+IS_DEBUG = debug()
+
+
+def fast() -> bool:
+    return truthy_string(environ.get("NEFARIUM_FAST", "")) is not None
+
+
+IS_SLOW = not fast()
+
+__all__ = (
+    "LimitedSizeDict",
+    "truthy_string",
+    "is_url",
+    "IS_DEBUG",
+    "httpx_to_yarl",
+    "IS_SLOW",
+)
