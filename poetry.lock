@@ -587,14 +587,13 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 
 [[package]]
 name = "dislog"
-version = "2.0.0"
+version = "2.1.0"
 description = "Provides an interface for using a discord webhook as a logger."
 category = "main"
 optional = false
 python-versions = "<4,>=3.10"
 files = [
-    {file = "dislog-2.0.0-py3-none-any.whl", hash = "sha256:b11542f7165dfb0f163f7dbdc5522679d2c6d2a84fa8fa9803f3676542f9a560"},
-    {file = "dislog-2.0.0.tar.gz", hash = "sha256:eb9c9f950acaff11c51b7297f385145e50890c6a5bcae5ddfce1948c381b9ae6"},
+    {file = "dislog-2.1.0.tar.gz", hash = "sha256:f85bbd16553b08c05f73bbc9f90af57e5994bb9e0c4d136e13d67b14bde638f9"},
 ]
 
 [package.dependencies]
@@ -1617,4 +1616,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "01209d05510519cba4ae10f28e5eb2a579465aecb1e60b4ba4fee0e71055f0a5"
+content-hash = "555ca1f2c739059d5e604ba8e519776252940cfef2a88f2768796e188b7f1b69"
