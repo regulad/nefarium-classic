@@ -15,14 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+from asyncio import to_thread
 from collections import OrderedDict
 from logging import getLogger
 from os import environ
+from urllib.parse import urlparse
 
+import bs4
+import cssutils
 import httpx
 import yarl
 
 logger = getLogger(__name__)
+
+
+def make_async(to_call):
+    """
+    Make an async function from a callable.
+    :param to_call: The callable to make the async function from.
+    :return: A function that returns a coroutine to call the callable.
+    """
+    return lambda *args, **kwargs: to_thread(to_call, *args, **kwargs)
 
 
 def truthy_string(value: str) -> str | None:
@@ -51,11 +64,9 @@ class LimitedSizeDict(OrderedDict):
 
 
 def is_url(value: str) -> bool:
-    from urllib.parse import urlparse
-
     try:
         result = urlparse(value)
-        return all([result.path, result.scheme or result.query])
+        return all([result.path or result.netloc])
     except ValueError:
         return False
 
@@ -72,11 +83,31 @@ def debug() -> bool:
 IS_DEBUG = debug()
 
 
-def fast() -> bool:
-    return truthy_string(environ.get("NEFARIUM_FAST", "")) is not None
+def normalize_css(css: str) -> str:
+    try:
+        return cssutils.parseString(css).cssText.decode("utf-8").strip()
+    except Exception as e:
+        logger.warning(f"Failed to normalize CSS: {e}")
+        return css
 
 
-IS_SLOW = not fast()
+def wrap_css_inline(css: str) -> str:
+    return normalize_css("*{" + css + "}")
+
+
+def unwrap_css_inline(css: str) -> str:
+    return (
+        normalize_css(css)
+        .removeprefix("* {\n")
+        .removesuffix("    }")
+        .replace("\n", " ")
+        .strip()
+    )  # arbitrary
+
+
+def normalize_html(html: str) -> str:
+    return bs4.BeautifulSoup(html, "html.parser").prettify()
+
 
 __all__ = (
     "LimitedSizeDict",
@@ -84,5 +115,9 @@ __all__ = (
     "is_url",
     "IS_DEBUG",
     "httpx_to_yarl",
-    "IS_SLOW",
+    "make_async",
+    "normalize_css",
+    "wrap_css_inline",
+    "unwrap_css_inline",
+    "normalize_html",
 )

@@ -17,5 +17,6 @@ from __future__ import annotations
 
 from .app_factory import *
 from .db import *
+from .filtering import *
 from .proxy import *
 from .routes import *

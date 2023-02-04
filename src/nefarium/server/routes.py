@@ -15,9 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+from datetime import datetime
 from logging import getLogger
 from urllib.parse import urlparse
 
+import tldextract
 from aiohttp.web import RouteTableDef
 from aiohttp.web_exceptions import (
     HTTPBadRequest,
@@ -59,33 +61,61 @@ async def initialize_flow(request: Request) -> Response:
     if flow is None:
         raise HTTPNotFound(reason="Flow ID not found")
 
-    redirect_url: str | None = truthy_string(
-        request.query.get("redirect_url", "")
-    ) or truthy_string(request.query.get("redirect_uri", ""))
+    redirect_uri: str | None = truthy_string(request.query.get("redirect_uri", ""))
 
-    if redirect_url is not None:
+    if redirect_uri is not None:
         try:
-            parsed = urlparse(redirect_url.lower().strip())
+            parsed = urlparse(redirect_uri.lower().strip())
         except ValueError as e:
-            raise HTTPBadRequest(reason="Unparseable redirect URL") from e
-        if not URL(redirect_url).is_absolute():
-            raise HTTPBadRequest(reason="Redirect URL must be absolute")
-        elif parsed.netloc not in flow["redirect_url_domains"]:
-            # TODO: check for wildcards
-            raise HTTPBadRequest(reason="Redirect URL not allowed")
+            raise HTTPBadRequest(reason="Unparseable redirect URI") from e
+
+        if not URL(redirect_uri).is_absolute():
+            raise HTTPBadRequest(reason="Redirect URI must be absolute")
+        elif parsed.scheme not in ("http", "https"):
+            raise HTTPBadRequest(reason="Redirect URI must be HTTP or HTTPS")
+        elif parsed.netloc not in flow["redirect_uri_domains"]:
+            # ok, so our redirect URI is not directly on the list
+            # we need to check if any wildcard is matched
+
+            redirect_uri_result = tldextract.extract(parsed.netloc)
+            allowed: bool = False
+
+            if "*" in flow["redirect_uri_domains"]:
+                # allow global wildcard
+                allowed = True
+            else:
+                for domain in flow["redirect_uri_domains"]:
+                    try:
+                        domain_result = tldextract.extract(domain)
+                        if (
+                            redirect_uri_result.registered_domain
+                            == domain_result.registered_domain
+                            and (
+                                redirect_uri_result.subdomain.endswith(
+                                    domain_result.subdomain
+                                )
+                                or domain_result.subdomain
+                                == "*"  # allow wildcard like *.twitter.com
+                            )
+                        ):
+                            allowed = True
+                    except ValueError:
+                        continue
+
+            if not allowed:
+                raise HTTPBadRequest(reason="Redirect URI not allowed per flow rules")
+    # redirect_uri is not declared
     elif not IS_DEBUG:
-        raise HTTPBadRequest(reason="Missing redirect URL")
-    else:
-        redirect_url = "http://localhost/"
-        parsed = urlparse(redirect_url)
+        raise HTTPBadRequest(reason="Missing redirect URI")
 
     new_session = await request.app["db"]["sessions"].insert_one(
         {
             "flow_id": flow["_id"],
             "state": "pending",
             "auth_data": None,
-            "redirect_url": parsed.geturl(),
+            "redirect_uri": parsed.geturl() if redirect_uri is not None else None,  # type: ignore
             "ip_address": request.remote,
+            "created_at": datetime.utcnow(),
         }
     )
 
@@ -153,9 +183,7 @@ async def handle_auth(request: Request) -> Response:
 
     proxy: AuthCaptureProxy
     if session_id not in proxies:
-        proxy = create_proxy(
-            flow, session, request.url, request.app.loop, request.app["db"]["sessions"]
-        )
+        proxy = create_proxy(flow, session, request.url, request.app["db"]["sessions"])
         proxies[session_id] = proxy
     else:
         proxy = proxies[session_id]

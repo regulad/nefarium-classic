@@ -35,6 +35,9 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      # Network connection
+      NEFARIUM_HOST: "0.0.0.0"
+      NEFARIUM_PORT: "8080"
       # MongoDB connection
       NEFARIUM_MONGO_DB: "nefarium"
       NEFARIUM_MONGO_URI: *db-uri

@@ -24,6 +24,9 @@ aiohttp-session = {extras = ["aioredis", "secure"], version = "^2.12.0"}
 cryptography = "^39.0.0"
 redis = {extras = ["hiredis"], version = "^4.4.2"}
 types-redis = "^4.4.0.4"
+jsonschema = "^4.17.3"
+tldextract = "^3.4.0"
+types-jsonschema = "^4.17.0.3"
 
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.2"

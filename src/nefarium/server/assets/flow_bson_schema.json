@@ -1,0 +1,100 @@
+{
+    "title": "flow",
+    "required": [
+        "_id",
+        "name",
+        "redirect_uri_domains",
+        "proxy_target",
+        "filter_response"
+    ],
+    "properties": {
+        "_id": {
+            "bsonType": "objectId"
+        },
+        "name": {
+            "bsonType": "string"
+        },
+        "description": {
+            "bsonType": "string"
+        },
+        "redirect_uri_domains": {
+            "bsonType": "array",
+            "items": {
+                "bsonType": "string"
+            },
+            "minItems": 1
+        },
+        "proxy_target": {
+            "bsonType": "string"
+        },
+        "auth_goals": {
+            "bsonType": ["object", "null"],
+            "title": "auth_goals",
+            "required": [
+                "goal_urls",
+                "required_cookies",
+                "required_cookies_regex",
+                "required_query_params",
+                "required_query_params_regex",
+                "status_codes"
+            ],
+            "properties": {
+                "goal_urls": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    },
+                    "minItems": 0
+                },
+                "return_body_requires_type": {
+                    "bsonType": ["string", "null"]
+                },
+                "return_body_requires_json_schema": {
+                    "bsonType": ["string", "object", "null"]
+                },
+                "return_body_requires_regex": {
+                    "bsonType": ["string", "null"]
+                },
+                "required_cookies": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    },
+                    "minItems": 0
+                },
+                "required_cookies_regex": {
+                    "bsonType": "object",
+                    "additionalProperties": {
+                        "bsonType": "string"
+                    }
+                },
+                "required_query_params": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    },
+                    "minItems": 0
+                },
+                "required_query_params_regex": {
+                    "bsonType": "object",
+                    "additionalProperties": {
+                        "bsonType": "string"
+                    }
+                },
+                "status_codes": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "int"
+                    },
+                    "minItems": 0
+                }
+            }
+        },
+        "request_proxy": {
+            "bsonType": ["string", "null"]
+        },
+        "filter_response": {
+            "bsonType": "bool"
+        }
+    }
+}

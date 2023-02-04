@@ -22,7 +22,7 @@ from os import environ
 from aiohttp.web import run_app
 from dislog import DiscordWebhookHandler
 
-from . import app_factory
+from . import *
 from .. import *
 
 logger = getLogger(__name__)
@@ -56,7 +56,10 @@ def main() -> None:
         )
         Logger.root.addHandler(handler)
 
-    run_app(app_factory())
+    port = int(environ.get("NEFARIUM_PORT", "8080"))
+    host = environ.get("NEFARIUM_HOST", "0.0.0.0")
+
+    run_app(app_factory(), port=port, host=host)
 
 
 if __name__ == "__main__":

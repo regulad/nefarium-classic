@@ -15,30 +15,229 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import base64
+import json
 import re
-from asyncio import AbstractEventLoop
+
+from functools import partial
 from logging import getLogger
 from os import environ
-from typing import Any, Text
+from typing import Any, Text, Callable
 
-import cssutils
 import httpx
 from aiohttp import hdrs
 from authcaptureproxy import AuthCaptureProxy
-from bs4 import BeautifulSoup
-from cssutils.css import CSSStyleSheet
+from authcaptureproxy.helper import run_func
+from jsonschema.validators import validate
+
+# from authcaptureproxy.examples.testers import test_amazon
 from motor.motor_asyncio import AsyncIOMotorCollection
 from yarl import URL
 
-from ..helpers import truthy_string, is_url, httpx_to_yarl, IS_SLOW
+from .filtering import fix_html_bs4, fix_css_cssutils, fix_javascript
+from ..helpers import truthy_string, make_async, IS_DEBUG, httpx_to_yarl
 from ..types import *
 
 logger = getLogger(__name__)
 
 
+def get_test_response(
+    flow: Flow, session: Session, *, update_db: None | Callable = None  # type: ignore # intellij j tripping
+) -> Callable:
+    """
+    Returns a closure that can be passed to an AuthCaptureProxy as a tester
+    :param session: The session object.
+    :param flow: The flow object.
+    :param update_db: A function that updates the database with the new auth code.
+    :return:
+    """
+    auth_goals: AuthGoals = flow["auth_goals"]
+
+    async def test_response(
+        resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
+    ) -> URL | None | str:
+        if auth_goals is None:
+            # No auth goals were set, so we can't test anything.
+            # this is legacy support
+            assert (
+                IS_DEBUG
+            ), "No auth goals were set, but the test_response function was called."
+            return None
+
+        return_code: dict[Text, Any] = {}
+
+        # ==CHECK STATUS CODE==
+        if len(status_codes := auth_goals["status_codes"]) > 0:
+            if resp.status_code not in status_codes:
+                # The status code doesn't match. We need to leave.
+                return None
+
+            if len(status_codes) > 1:
+                # Possible status codes could exist, so we need to encode the status code
+                return_code["status_code"] = resp.status_code
+
+        # ==CHECK URL==
+        if len(goal_urls := auth_goals["goal_urls"]) > 0:
+            if not resp.url:
+                # For websocket connections or any other type of response where the URL is not set,
+                # we can't use it here.
+                return None
+
+            for goal_url in goal_urls:
+                if goal_url.startswith("/"):
+                    if resp.url.path == goal_url:
+                        break
+                elif goal_url in str(resp.url):  # written by copilot, needs testing
+                    break
+            else:
+                # The goal URL doesn't match. We need to leave.
+                return None
+
+        # ==CHECK COOKIES==
+        if len(required_cookies := auth_goals["required_cookies"]) > 0:
+            return_code["cookies"] = {}
+            for cookie in required_cookies:
+                if cookie not in resp.cookies:
+                    # The cookie is not present. We need to leave.
+                    return None
+                elif cookie in auth_goals["required_cookies_regex"]:
+                    if (
+                        maybe_cookie_regex_def := auth_goals["required_cookies_regex"][
+                            cookie
+                        ]
+                    ) is not None:
+                        # validate the cookie
+                        cookie_regex = re.compile(maybe_cookie_regex_def)
+                        cookie_data = resp.cookies[cookie]
+                        if not cookie_regex.match(cookie_data):
+                            # The cookie data doesn't match. We need to leave.
+                            return None
+
+                # cookie is good, add it to return code
+                return_code["cookies"][cookie] = resp.cookies[cookie]
+
+        # ==CHECK QUERY PARAMETERS==
+        if len(required_query_params := auth_goals["required_query_params"]) > 0:
+            return_code["query"] = {}
+            current_query = httpx_to_yarl(resp.url).query
+            for param in required_query_params:
+                if param not in current_query:
+                    # The query parameter is not present. We need to leave.
+                    return None
+                elif param in auth_goals["required_query_params_regex"]:
+                    if (
+                        maybe_param_regex := auth_goals["required_query_params_regex"][
+                            param
+                        ]
+                    ) is not None:
+                        # validate the cookie
+                        param_regex = re.compile(maybe_param_regex)
+                        param_text = current_query[param]
+                        if not param_regex.match(param_text):
+                            # The cookie data doesn't match. We need to leave.
+                            return None
+
+                # cookie is good, add it to return code
+                return_code["query"][param] = current_query[param]
+
+        # ==CHECK BODY==
+        if (required_body_type := auth_goals["return_body_requires_type"]) is not None:
+            match required_body_type:
+                case "json":
+                    if resp.headers.get(hdrs.CONTENT_TYPE) != "application/json":
+                        # The content type is not JSON. We need to leave.
+                        return None
+                    else:
+                        # Content is JSON.
+                        try:
+                            body_json = resp.json()
+                        except Exception as e:
+                            logger.debug(f"Error validating JSON for {resp}: {e}")
+                            return None
+
+                        if (
+                            body_schema_maybe_str := auth_goals[
+                                "return_body_requires_json_schema"
+                            ]
+                        ) is not None:
+                            # there is a schema defined, we need to check it
+                            if not isinstance(body_schema_maybe_str, str):
+                                body_schema = body_schema_maybe_str
+                            else:
+                                try:
+                                    body_schema = json.loads(body_schema_maybe_str)
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Malformed flow! Error parsing JSON schema for {resp}: {e}"
+                                    )
+                                    return None
+
+                            try:
+                                validate(body_json, body_schema)
+                            except Exception as e:
+                                logger.debug(
+                                    f"Error validating JSON schema for {resp}: {e}"
+                                )
+                                return None
+
+                        # json is good, SEND IT
+                        return_code["json"] = body_json
+                case "regex":
+                    if (
+                        required_body_regex := auth_goals["return_body_requires_regex"]
+                    ) is not None:
+                        body_regex = re.compile(required_body_regex)
+                        if not body_regex.match(resp.text):
+                            # The body does not match the regex. We need to leave.
+                            return None
+                        else:
+                            # Body matches regex.
+                            return_code["body"] = resp.text
+
+        # At this point, we know that the response is valid, and it returns some sort of authentication state.
+
+        assert return_code, "No return code was added!"
+
+        final_code = return_code.copy()
+
+        if update_db is not None:
+            try:
+                await run_func(update_db, "update_db", final_code)
+            except Exception as e:
+                logger.exception(f"Error calling update database: {e}")
+
+        json_code = json.dumps(final_code)
+        utf_json = json_code.encode("utf-8")
+        base64_code_bytes = base64.b64encode(utf_json)
+        base64_code = base64_code_bytes.decode("utf-8")
+
+        # decoding final code
+        # json.loads(base64.b64decode(base64_code))
+
+        if (redirect_uri := session["redirect_uri"]) is None:
+            assert IS_DEBUG, "Redirect URI is None, but we are not in debug mode!"
+            return json_code
+
+        final_query = {
+            "code": base64_code,
+        }
+
+        if (
+            "state_data" in session
+            and (state_data := session["state_data"]) is not None
+        ):
+            final_query["state"] = state_data
+
+        return URL(redirect_uri).with_query(final_query)
+
+    return test_response
+
+
 def get_httpx_client(flow: Flow) -> httpx.AsyncClient:
     proxies = {}
-    if (proxy := truthy_string(flow.get("request_proxy"))) is not None:  # type: ignore # manually checked
+
+    # Proxy
+    if "request_proxy" in flow and (proxy := truthy_string(flow.get("request_proxy"))) is not None:  # type: ignore # manually checked
         proxies["http"] = proxy
         proxies["https"] = proxy
         logger.warning(
@@ -54,176 +253,10 @@ def get_httpx_client(flow: Flow) -> httpx.AsyncClient:
     return httpx.AsyncClient(proxies=proxies or None)  # type: ignore # manually checked
 
 
-def fix_url(proxy_url: URL, request_url: URL, url: str | URL) -> str | URL:
-    """
-    Fix a URL to work with the proxy. This method will be executed in an async context.
-    :param proxy_url:
-    :param request_url:
-    :param url:
-    :return:
-    """
-    if not (native_url := isinstance(url, URL)):
-        if "base64" in url:
-            return url  # can't do anything
-        parsed_url = URL(url)
-    else:
-        parsed_url = url
-
-    if not parsed_url.is_absolute():
-        parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
-    elif parsed_url.host == request_url.host:
-        if request_url.host is not None:
-            parsed_url = (
-                parsed_url.with_scheme(request_url.scheme)
-                .with_host(request_url.host)
-                .with_path(proxy_url.path + parsed_url.path)
-            )
-    else:
-        pass  # cloudflare stuff. handle
-
-    return parsed_url if native_url else str(parsed_url)
-
-
-def fix_javascript_string_literal(
-    proxy_url: URL, request_url: URL, string_literal: str
-) -> str:
-    quoteless = string_literal[1:-1].lstrip("\\")  # thing
-
-    if is_url(quoteless):
-        return f"{string_literal[0]}{fix_url(proxy_url, request_url, quoteless)}{string_literal[-1]}"
-    else:
-        return string_literal
-
-
-def fix_javascript(proxy_url: URL, request_url: URL, javascript: str) -> str:
-    """
-    Fix javascript to work with the proxy. This method will be executed in an async context.
-    :param proxy_url:
-    :param request_url:
-    :param javascript:
-    :return:
-    """
-    # find string literals with regex and pass them to is_javascript_string_literal
-    # https://stackoverflow.com/a/1732454/10428126
-    return re.sub(
-        r"\"(\\.|[^\"\\])*\"|'(\\.|[^'\\])*'|`[^`]*`",
-        lambda match: fix_javascript_string_literal(
-            proxy_url, request_url, match.group(0)
-        ),
-        javascript,
-    )
-
-
-def fix_css_cssutils(
-    proxy_url: URL, request_url: URL, css: str, *, inline: bool = False
-) -> str:
-    """
-    Fix CSS to work with the proxy. This method will be executed in an async context.
-    WARNING: This method is extremely computationally expensive. Use with caution.
-    :param inline:
-    :param proxy_url:
-    :param request_url:
-    :param css:
-    :return:
-    """
-    stylesheet: CSSStyleSheet = cssutils.parseString(
-        css if not inline else "*{" + css + "}"
-    )
-
-    for rule in stylesheet:
-        if rule.type == rule.STYLE_RULE:
-            for prop in rule.style:
-                prop.value = re.sub(
-                    r"url\(([^)]+)\)",
-                    lambda match: f"url({fix_url(proxy_url, request_url, match.group(1))})",
-                    prop.value,
-                )
-
-    return stylesheet.cssText.decode("utf-8")
-
-
-def fix_css_fast(
-    proxy_url: URL, request_url: URL, css: str, *, inline: bool = False
-) -> str:
-    """
-    Fix CSS to work with the proxy. This method will be executed in an async context.
-    :param inline:
-    :param proxy_url:
-    :param request_url:
-    :param css:
-    :return:
-    """
-    # this was written by Copilot, so it could be wrong or unsafe.
-    # someone who is better at regex than me should check it
-    return re.sub(
-        r"url\(([^)]+)\)",
-        lambda match: f"url({fix_url(proxy_url, request_url, match.group(1))})",
-        css if not inline else "*{" + css + "}",
-    )
-
-
-fix_css = fix_css_cssutils if IS_SLOW else fix_css_fast
-
-
-def fix_html_bs4(proxy_url: URL, request_url: URL, html: str) -> str:
-    """
-    Fix HTML to work with the proxy. This method will be executed in an async context.
-    WARNING: This method is extremely computationally expensive. Use with caution.
-    :param proxy_url:
-    :param request_url:
-    :param html:
-    :return:
-    """
-    soups = BeautifulSoup(html, "html.parser")
-
-    for tag in soups.find_all("script"):
-        if tag.has_attr("src"):
-            tag["src"] = fix_url(proxy_url, request_url, tag["src"])
-        else:
-            tag.string = fix_javascript(proxy_url, request_url, tag.string)
-
-    for tag in soups.find_all("link"):
-        if tag.has_attr("href"):
-            tag["href"] = fix_url(proxy_url, request_url, tag["href"])
-
-    for tag in soups.find_all("img"):
-        if tag.has_attr("src"):
-            tag["src"] = fix_url(proxy_url, request_url, tag["src"])
-
-    for tag in soups.find_all("a"):
-        if tag.has_attr("href"):
-            tag["href"] = fix_url(proxy_url, request_url, tag["href"])
-
-    for tag in soups.find_all("style"):
-        tag.string = fix_css(proxy_url, request_url, tag.string)
-
-    for tag in soups.find_all(
-        attrs={"style": lambda style: bool(truthy_string(style))}
-    ):
-        tag["style"] = fix_css(proxy_url, request_url, tag["style"], inline=True)
-
-    return str(soups)
-
-
-def fix_html_fast(proxy_url: URL, request_url: URL, html: str) -> str:
-    """
-    Fix HTML to work with the proxy. This method will be executed in an async context.
-    :param proxy_url:
-    :param request_url:
-    :param html:
-    :return:
-    """
-    return html
-
-
-fix_html = fix_html_bs4 if IS_SLOW else fix_html_fast
-
-
 def create_proxy(
     flow: Flow,
     session: Session,
     base_url: URL,
-    loop: AbstractEventLoop,
     collection: AsyncIOMotorCollection,
 ) -> AuthCaptureProxy:
     proxy = AuthCaptureProxy(
@@ -235,67 +268,39 @@ def create_proxy(
     )
     proxy.headers = {hdrs.ACCEPT_ENCODING: "gzip"}  # httpx
 
-    callback_url: URL = URL(session["redirect_url"])
+    if "auth_goals" in flow:
 
-    def check_auth_data(
-        resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-    ) -> Any | None:
-        """
-        Check if the auth data is valid. A closure that uses the flow config to determine if the auth data is valid.
-        :param resp:
-        :param data:
-        :param query:
-        :return: Auth data if valid, None otherwise. Must be JSON serializable.
-        """
-        return None  # TODO check in accordance with flow config
+        async def update_auth_state(auth_data: Any) -> None:
+            await collection.update_one(
+                {"_id": session["_id"]},
+                {"$set": {"state": "authed", "auth_data": auth_data}},
+            )
 
-    async def update_auth_state(auth_data: Any) -> None:
-        await collection.update_one(
-            {"_id": session["_id"]},
-            {"$set": {"state": "authed", "auth_data": auth_data}},
-        )
+        proxy.tests = {
+            "test_auth": get_test_response(flow, session, update_db=update_auth_state),
+        }
 
-    def on_auth_data(
-        resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-    ) -> URL | None | str:
-        """
-        A callback for AuthCaptureProxy that checks if the auth data is valid.
-        :param resp:
-        :param data:
-        :param query:
-        :return: The callback URL if auth data is valid, None otherwise
-        """
-        # store callback URL in closure
-        if auth_data := check_auth_data(resp, data, query):
-            loop.create_task(update_auth_state(auth_data))
+    if flow["filter_response"]:
+        html_modifiers = {  # type: ignore  # PyCharm is ANGRY
+            "post_authcaptureproxy_fixes": (  # make_async should work here but it doesn't
+                partial(fix_html_bs4, base_url, proxy_target),  # type: ignore  # mypy is ANGRY
+            ),
+        }
 
-            return callback_url.with_query({"state": auth_data})
-        else:
-            return None  # can continue
-
-    def filter_output(
-        resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
-    ) -> URL | None | str:
-        """
-        Prevent redirecting out of the proxy target.
-        :param resp:
-        :param data:
-        :param query:
-        :return:
-        """
-        return_type: str = resp.headers[hdrs.CONTENT_TYPE].lower().split(";")[0]
-        match return_type:
-            case "text/html" | "application/xhtml+xml":
-                resp._text = fix_html(base_url, httpx_to_yarl(resp.url), resp.text)
-            case "text/javascript":
-                resp._text = fix_javascript(
-                    base_url, httpx_to_yarl(resp.url), resp.text
-                )
-            case "text/css":
-                resp._text = fix_css(base_url, httpx_to_yarl(resp.url), resp.text)
-        return None
-
-    proxy.tests = {"test_auth": on_auth_data, "test_filter_output": filter_output}
+        proxy.modifiers = {
+            "text/html": html_modifiers,
+            "application/xhtml+xml": html_modifiers,
+            "text/javascript": {
+                "fix_javascript": (  # make_async should work here but it doesn't
+                    partial(fix_javascript, base_url, proxy_target),
+                ),
+            },
+            "text/css": {
+                "fix_css": (  # make_async should work here but it doesn't
+                    partial(fix_css_cssutils, base_url, proxy_target)
+                ),
+            },
+        }
 
     return proxy
 
