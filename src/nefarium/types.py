@@ -80,6 +80,7 @@ class Flow(TypedDict):
     auth_goals: NotRequired[AuthGoals]
     request_proxy: NotRequired[str]
     filter_response: bool  # whether to filter the response body
+    redirect_code: NotRequired[bool]
 
 
 class Session(TypedDict):

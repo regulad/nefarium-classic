@@ -109,7 +109,11 @@
         },
         "filter_response": {
             "type": "boolean",
-            "description": "If true, the proxy will filter the response body to use corrected URLs that keep the user in the proxy.",
+            "description": "If true, the proxy will filter the response body to use corrected URLs that keep the user in the proxy."
+        },
+        "redirect_code": {
+            "type": "boolean",
+            "description": "If the user should be presented with a code instead of redirected back to the redirect URI. Useful for desktop and non-web applications."
         }
     }
 }

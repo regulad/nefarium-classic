@@ -23,7 +23,7 @@ from yarl import URL
 
 from nefarium.server import create_proxy, get_database
 
-from . import *
+from .. import *
 
 
 @pytest.fixture(scope="session")

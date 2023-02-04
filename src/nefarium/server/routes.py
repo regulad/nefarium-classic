@@ -63,6 +63,7 @@ async def initialize_flow(request: Request) -> Response:
 
     redirect_uri: str | None = truthy_string(request.query.get("redirect_uri", ""))
 
+    final_redirect_uri: str | None = None
     if redirect_uri is not None:
         try:
             parsed = urlparse(redirect_uri.lower().strip())
@@ -104,7 +105,15 @@ async def initialize_flow(request: Request) -> Response:
 
             if not allowed:
                 raise HTTPBadRequest(reason="Redirect URI not allowed per flow rules")
+            else:
+                final_redirect_uri = parsed.geturl()
+        else:
+            # redirect URI is good as is.
+            final_redirect_uri = parsed.geturl()
     # redirect_uri is not declared
+    elif "redirect_code" in flow and flow["redirect_code"]:
+        # redirect code is set, so we do not need to follow the redirect URI.
+        pass  # lets the final_redirect_uri be none
     elif not IS_DEBUG:
         raise HTTPBadRequest(reason="Missing redirect URI")
 
@@ -113,7 +122,7 @@ async def initialize_flow(request: Request) -> Response:
             "flow_id": flow["_id"],
             "state": "pending",
             "auth_data": None,
-            "redirect_uri": parsed.geturl() if redirect_uri is not None else None,  # type: ignore
+            "redirect_uri": final_redirect_uri,
             "ip_address": request.remote,
             "created_at": datetime.utcnow(),
         }
