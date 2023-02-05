@@ -6,6 +6,9 @@ on:
 
 jobs:
   tests:
+    defaults:
+      run:
+        shell: bash
     name: "Run tests on Python ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
