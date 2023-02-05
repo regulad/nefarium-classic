@@ -29,6 +29,11 @@ from ..helpers import truthy_string, is_url, wrap_css_inline, unwrap_css_inline
 
 logger = getLogger(__name__)
 
+ATTEMPT_TO_KEEP_URLS_IN_DOMAIN = False
+
+
+# required for proxy.FOLLOW_REDIRECTS_OUT_OF_DOMAIN
+
 
 def fix_html_bs4(proxy_url: URL, request_url: URL, html: str) -> str:
     """
@@ -180,7 +185,13 @@ def fix_url(proxy_url: URL, request_url: URL, url: str | URL) -> str | URL:
                 f"Got redirected out of the domain! {request_url} -> {parsed_url}"
             )
             # we will still do the following just incase it works
-            parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
+            if ATTEMPT_TO_KEEP_URLS_IN_DOMAIN:
+                parsed_url = proxy_url.with_path(
+                    f"{proxy_url.path.removesuffix('auth')}out/{parsed_url.scheme}/{parsed_url.host}"
+                    + parsed_url.path
+                )
+            else:
+                pass  # just allow it to work, for css and js and whatever
         else:
             # this request will be handled normally.
             parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
