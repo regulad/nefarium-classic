@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import re
@@ -34,7 +35,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 from yarl import URL
 
 from .filtering import fix_html_bs4, fix_css_cssutils, fix_javascript
-from ..helpers import truthy_string, IS_DEBUG, httpx_to_yarl, normalize_html
+from ..helpers import truthy_string, IS_DEBUG, httpx_to_yarl, normalize_html, make_async
 from ..types import *
 
 logger = getLogger(__name__)
@@ -158,6 +159,29 @@ def get_test_response(
                 # cookie is good, add it to return code
                 return_code["cookies"][cookie] = resp.cookies[cookie]
 
+        # ==CHECK HEADERS==
+        if len(required_headers := auth_goals["required_headers"]) > 0:
+            return_code["headers"] = {}
+            for header in required_headers:
+                if header not in resp.headers:
+                    # The header is not present. We need to leave.
+                    return None
+                elif header in auth_goals["required_headers_regex"]:
+                    if (
+                        maybe_header_regex_def := auth_goals["required_headers_regex"][
+                            header
+                        ]
+                    ) is not None:
+                        # validate the header
+                        header_regex = re.compile(maybe_header_regex_def)
+                        header_data = resp.headers[header]
+                        if not header_regex.match(header_data):
+                            # The header data doesn't match. We need to leave.
+                            return None
+
+                # header is good, add it to return code
+                return_code["headers"][header] = resp.headers[header]
+
         # ==CHECK QUERY PARAMETERS==
         if len(required_query_params := auth_goals["required_query_params"]) > 0:
             return_code["query"] = {}
@@ -280,7 +304,7 @@ def get_test_response(
     return test_response
 
 
-def get_httpx_client(flow: Flow) -> httpx.AsyncClient:
+def get_httpx_client(flow: Flow, *args, **kwargs) -> httpx.AsyncClient:
     proxies = {}
 
     # Proxy
@@ -300,7 +324,10 @@ def get_httpx_client(flow: Flow) -> httpx.AsyncClient:
             f"Using proxy from environment variable: {proxy}. This could get overwritten by AuthCaptureProxy."
         )
 
-    return httpx.AsyncClient(proxies=proxies or None)  # type: ignore # manually checked
+    if proxies:
+        kwargs["proxies"] = proxies
+
+    return httpx.AsyncClient(*args, **kwargs)  # type: ignore # manually checked
 
 
 def create_proxy(
@@ -308,18 +335,35 @@ def create_proxy(
     session: Session,
     base_url: URL,
     collection: AsyncIOMotorCollection,
+    *,
+    cookie_jar: httpx.Cookies | None = None,
 ) -> AuthCaptureProxy:
+    """
+    Creates a proxy for the given flow.
+    :param flow: The flow to create a proxy for.
+    :param session: The session to create a proxy for.
+    :param base_url: The base URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
+    :param collection: The Motor collection to commit to.
+    :param cookie_jar: The cookie jar to use for the proxy.
+    :return:
+    """
     proxy = AuthCaptureProxy(
         base_url,
         # should be called on first go, so this will be correct unless the proxy cache rolls over which should be rare
         proxy_target := URL(flow["proxy_target"]),
-        session=get_httpx_client(flow),
+        session=get_httpx_client(flow, cookies=cookie_jar),
         # note: this client may get clobbered by the AuthCaptureProxy so proxies may be unreliable?
     )
+
+    proxy.__process_lock = asyncio.Lock()
+    proxy.__initial_host_url = proxy._host_url
+    proxy.__initial_proxy_url = proxy._proxy_url
+
+    proxy._active = True  # type: ignore # we don't attach the proxy to a runner so we need to do it manually
+
     proxy.headers = {hdrs.ACCEPT_ENCODING: "gzip"}  # httpx
 
     if "auth_goals" in flow:
-
         async def update_auth_state(auth_data: Any) -> None:
             await collection.update_one(
                 {"_id": session["_id"]},
@@ -332,7 +376,7 @@ def create_proxy(
 
     if flow["filter_response"]:
         html_modifiers = {  # type: ignore  # PyCharm is ANGRY
-            "post_authcaptureproxy_fixes": (  # make_async should work here but it doesn't
+            "post_authcaptureproxy_fixes": make_async(
                 partial(fix_html_bs4, base_url, proxy_target),  # type: ignore  # mypy is ANGRY
             ),
         }
@@ -341,12 +385,12 @@ def create_proxy(
             "text/html": html_modifiers,
             "application/xhtml+xml": html_modifiers,
             "text/javascript": {
-                "fix_javascript": (  # make_async should work here but it doesn't
+                "fix_javascript": make_async(
                     partial(fix_javascript, base_url, proxy_target),
                 ),
             },
             "text/css": {
-                "fix_css": (  # make_async should work here but it doesn't
+                "fix_css": make_async(
                     partial(fix_css_cssutils, base_url, proxy_target)
                 ),
             },
