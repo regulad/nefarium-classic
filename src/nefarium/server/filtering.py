@@ -43,7 +43,7 @@ def fix_html_bs4(proxy_url: URL, request_url: URL, html: str) -> str:
     for tag in soups.find_all("script"):
         if tag.has_attr("src"):
             tag["src"] = fix_url(proxy_url, request_url, tag["src"])
-        else:
+        elif tag.string is not None:
             tag.string = fix_javascript(proxy_url, request_url, tag.string)
 
     for tag in soups.find_all("link"):
@@ -185,10 +185,10 @@ def fix_url(proxy_url: URL, request_url: URL, url: str | URL) -> str | URL:
             # this request will be handled normally.
             parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
     else:
-        # this request is not currently proxied.
-        # cloudflare handling code will probably go here.
-        pass
+        # absolute URL but with no host.
+        parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
 
+    logger.debug(f"fix_url({proxy_url}, {request_url}, {url}) -> {parsed_url}")
     return parsed_url if native_url else str(parsed_url)
 
 
