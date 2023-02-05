@@ -15,8 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from asyncio import to_thread
+import contextvars
+import functools
+from asyncio import events
 from collections import OrderedDict
+from concurrent.futures import Executor, ThreadPoolExecutor
 from logging import getLogger
 from os import environ
 from urllib.parse import urlparse
@@ -29,13 +32,50 @@ import yarl
 logger = getLogger(__name__)
 
 
-def make_async(to_call):
+# for performance reasons, we want more than one executor
+executors = {}
+
+
+def make_async(func, *, name: str = "", create_local_executor: bool = False):
     """
     Make an async function from a callable.
-    :param to_call: The callable to make the async function from.
+    :param create_local_executor: If True, create a local executor for the function.
+    :param name: An optional name for the executor.
+    :param func: The callable to make the async function from.
     :return: A function that returns a coroutine to call the callable.
     """
-    return lambda *args, **kwargs: to_thread(to_call, *args, **kwargs)
+
+    # stolen from authcaptureproxy
+    unknown_name = repr(func)
+    if name:
+        name = name
+    else:
+        try:
+            # get function name
+            name = func.__name__
+        except AttributeError:
+            # check partial
+            try:
+                name = func.func.__name__  # type: ignore[attr-defined]
+            except AttributeError:
+                # unknown
+                name = unknown_name
+
+    current_executor: None | Executor = None
+    if create_local_executor:
+        if name in executors:
+            current_executor = executors[name]
+        else:
+            current_executor = ThreadPoolExecutor(thread_name_prefix=f"{name}-")
+            executors[name] = current_executor
+
+    async def async_func(*args, **kwargs):
+        loop = events.get_running_loop()
+        ctx = contextvars.copy_context()
+        func_call = functools.partial(ctx.run, func, *args, **kwargs)
+        return await loop.run_in_executor(current_executor, func_call)
+
+    return async_func
 
 
 def truthy_string(value: str) -> str | None:
@@ -66,7 +106,7 @@ class LimitedSizeDict(OrderedDict):
 def is_url(value: str) -> bool:
     try:
         result = urlparse(value)
-        return all([result.path or result.netloc])
+        return all([result.path or result.netloc, result.scheme or yarl.URL(value).is_absolute()])
     except ValueError:
         return False
 
