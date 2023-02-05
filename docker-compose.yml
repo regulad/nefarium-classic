@@ -31,7 +31,7 @@ services:
     volumes:
       - cache:/data
   nefarium:
-    image: ghcr.io/regulad/nefarium:main
+    image: ghcr.io/nefarium/nefarium:main
     build: .
     restart: unless-stopped
     environment:

@@ -16,6 +16,10 @@
 
 FROM python:3.11-slim
 
+LABEL name="nefarium" \
+  version="0.1.0" \
+  maintainer="Parker Wahle"
+
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONFAULTHANDLER=1 \
   PYTHONUNBUFFERED=1 \
@@ -39,7 +43,7 @@ WORKDIR /app
 COPY poetry.lock pyproject.toml /app/
 
 # Project initialization:
-RUN /opt/poetry/bin/poetry install --without dev --no-interaction --no-ansi --no-root
+RUN /opt/poetry/bin/poetry install --only main --no-interaction --no-ansi --no-root
 
 # Creating folders, and files for a project:
 COPY . /app
