@@ -30,6 +30,8 @@ def dummy_auth_goals() -> AuthGoals:
         "return_body_requires_regex": None,
         "required_cookies": [],
         "required_cookies_regex": {},
+        "required_headers": [],
+        "required_headers_regex": {},
         "required_query_params": [],
         "required_query_params_regex": {},
         "status_codes": [200],
