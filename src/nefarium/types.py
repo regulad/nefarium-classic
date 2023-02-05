@@ -44,6 +44,9 @@ class AuthGoals(TypedDict):
     required_cookies: list[str]  # list of required cookies present in the request
     required_cookies_regex: dict[str, str | None]  # regex to match against
 
+    required_headers: list[str]  # list of required headers present in the request
+    required_headers_regex: dict[str, str | None]  # regex to match against
+
     required_query_params: list[
         str
     ]  # list of required query parameters present in the request
@@ -64,6 +67,8 @@ class AuthGoals(TypedDict):
     # - json: object | null | undefined
     #   the body of the response that matched the JSON definition, if type is "json"
     #   the ENTIRE body of the response
+    # - headers: object | undefined
+    #   an object containing the RESPONSE headers in required_headers and their values
     # The Redirect URI will be redirected to when all of declared criteria are met.
 
 

@@ -21,6 +21,8 @@
                 "return_body_requires_regex",
                 "required_cookies",
                 "required_cookies_regex",
+                "required_headers",
+                "required_headers_regex",
                 "required_query_params",
                 "required_query_params_regex",
                 "status_codes"
@@ -50,6 +52,19 @@
                     "minItems": 0
                 },
                 "required_cookies_regex": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "required_headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 0
+                },
+                "required_headers_regex": {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"

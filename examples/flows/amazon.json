@@ -6,6 +6,8 @@
         "return_body_requires_regex": null,
         "required_cookies": [],
         "required_cookies_regex": {},
+        "required_headers": [],
+        "required_headers_regex": {},
         "required_query_params": ["openid.oa2.access_token"],
         "required_query_params_regex": {},
         "status_codes": []

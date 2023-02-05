@@ -1,0 +1,22 @@
+{
+    "auth_goals": {
+        "goal_urls": ["https://api.twitter.com/1.1/onboarding/task.json"],
+        "return_body_requires_type": null,
+        "return_body_requires_json_schema": null,
+        "return_body_requires_regex": null,
+        "required_cookies": ["auth_token", "twid", "att", "kdt"],
+        "required_cookies_regex": {},
+        "required_headers": [],
+        "required_headers_regex": {},
+        "required_query_params": [],
+        "required_query_params_regex": {},
+        "status_codes": []
+    },
+    "description": "Twitter Login",
+    "filter_response": true,
+    "name": "Twitter",
+    "proxy_target": "https://twitter.com/i/flow/login",
+    "redirect_uri_domains": ["*"],
+    "redirect_code": true,
+    "request_proxy": null
+}
