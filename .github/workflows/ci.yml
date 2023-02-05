@@ -26,9 +26,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: precommit-venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Activate virtualenv
+        run: source $VENV
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+        run: poetry install --no-interaction --no-root --only dev,ci
       - name: Run pre-commit hooks
         run: poetry run tox r -e lint
   tests:
@@ -57,6 +59,8 @@ jobs:
       with:
         path: ~/.cache
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Activate virtualenv
+      run: source $VENV
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
     - name: Run tox tests
