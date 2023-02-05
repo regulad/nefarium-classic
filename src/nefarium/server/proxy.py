@@ -310,7 +310,7 @@ def get_httpx_client(flow: Flow, *args, **kwargs) -> httpx.AsyncClient:
     # Proxy
     if (
         "request_proxy" in flow
-        and (proxy := truthy_string(flow.get("request_proxy"))) is not None
+        and (proxy := truthy_string(flow.get("request_proxy"))) is not None  # type: ignore # manually checked
     ):  # type: ignore # manually checked
         proxies["http"] = proxy
         proxies["https"] = proxy
