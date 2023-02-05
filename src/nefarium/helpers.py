@@ -106,7 +106,12 @@ class LimitedSizeDict(OrderedDict):
 def is_url(value: str) -> bool:
     try:
         result = urlparse(value)
-        return all([result.path or result.netloc, result.scheme or yarl.URL(value).is_absolute()])
+        return all(
+            [
+                result.path or result.netloc,
+                result.scheme or yarl.URL(value).is_absolute(),
+            ]
+        )
     except ValueError:
         return False
 

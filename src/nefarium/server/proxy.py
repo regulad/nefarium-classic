@@ -364,6 +364,7 @@ def create_proxy(
     proxy.headers = {hdrs.ACCEPT_ENCODING: "gzip"}  # httpx
 
     if "auth_goals" in flow:
+
         async def update_auth_state(auth_data: Any) -> None:
             await collection.update_one(
                 {"_id": session["_id"]},
