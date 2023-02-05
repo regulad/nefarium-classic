@@ -71,7 +71,11 @@ def test_limited_size_dict_size():
         ("http://google.com/whatever?with=parameters", True),
         ("/test/", True),
         ("/test", True),
-        (":::::", True),
+        (":::::", False),
+        ("hello", False),
+        ("^The.*Spain$", False),
+        ("things${thing}", False),
+        ("yeah{yeah}", False),
     ],
 )
 def test_is_url(url: str, result: bool):
