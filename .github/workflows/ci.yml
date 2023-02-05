@@ -35,7 +35,7 @@ jobs:
         path: ~/.cache
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
-      run: poetry install --no-interaction --no-root --with dev,ci
+      run: poetry install --no-interaction --with dev,ci  # needs to be editable for tox?? so weird
     - name: Activate virtualenv
       run: source $VENV
     - name: Run tox tests

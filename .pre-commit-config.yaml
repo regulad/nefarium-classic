@@ -21,3 +21,5 @@ repos:
   hooks:
     - id: poetry-check
     - id: poetry-lock
+      stages:
+        - commit  # broken on pre-commit.ci
