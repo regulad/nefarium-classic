@@ -32,8 +32,13 @@
             "title": "auth_goals",
             "required": [
                 "goal_urls",
+                "return_body_requires_type",
+                "return_body_requires_json_schema",
+                "return_body_requires_regex",
                 "required_cookies",
                 "required_cookies_regex",
+                "required_headers",
+                "required_headers_regex",
                 "required_query_params",
                 "required_query_params_regex",
                 "status_codes"
@@ -63,6 +68,19 @@
                     "minItems": 0
                 },
                 "required_cookies_regex": {
+                    "bsonType": "object",
+                    "additionalProperties": {
+                        "bsonType": "string"
+                    }
+                },
+                "required_headers": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    },
+                    "minItems": 0
+                },
+                "required_headers_regex": {
                     "bsonType": "object",
                     "additionalProperties": {
                         "bsonType": "string"
