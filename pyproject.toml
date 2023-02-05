@@ -24,9 +24,15 @@ redis = {extras = ["hiredis"], version = "^4.4.2"}
 jsonschema = "^4.17.3"
 tldextract = "^3.4.0"
 
+[tool.poetry.group.dev]
+optional = true
+
 [tool.poetry.group.dev.dependencies]
 tox = "^4.4.4"
 pre-commit = "^3.0.4"
+
+[tool.poetry.group.ci]
+optional = true
 
 [tool.poetry.group.ci.dependencies]
 tox-gh-actions = "^3.0.0"

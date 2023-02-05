@@ -39,7 +39,7 @@ Highest priority first.
   - [ ] Twitter (should not be too hard) (funny, only dropped official API & OAuth support recently)
 - [x] Setup pre-commit
 - [ ] Public instance with Heroku
-- [ ] CI/CD with GitHub Actions
+- [x] CI/CD with GitHub Actions
 - [ ] Bypass cloudflare challenges
 - [ ] Tricky flows for websites that don't support OAuth:
   - [ ] TikTok (might be a bit tricky)
@@ -72,7 +72,7 @@ Use the [`docker-compose.yml`](./docker-compose.yml) to configure the nefarium b
 First, install the dependencies:
 
 ```bash
-poetry install --no-root
+poetry install --no-root --with dev
 ```
 
 Second, install the pre-commit hooks:
