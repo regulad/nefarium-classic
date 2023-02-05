@@ -33,10 +33,10 @@ logger = getLogger(__name__)
 
 
 # for performance reasons, we want more than one executor
-executors = {}
+executors: dict[str, Executor] = {}
 
 
-def make_async(func, *, name: str = "", create_local_executor: bool = False):
+def make_async(func, *, name: str = "", create_local_executor: bool = True):
     """
     Make an async function from a callable.
     :param create_local_executor: If True, create a local executor for the function.
@@ -109,7 +109,7 @@ def is_url(value: str) -> bool:
         return all(
             [
                 result.path or result.netloc,
-                result.scheme or yarl.URL(value).is_absolute(),
+                result.scheme or yarl.URL(value).is_absolute() or "/" in value,
             ]
         )
     except ValueError:
