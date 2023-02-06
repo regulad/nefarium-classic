@@ -223,20 +223,27 @@ version = "1.1.4"
 description = "A Python project to create a proxy to capture authentication information from a webpage. This is useful to capture oauth login details without access to a third-party oauth."
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "authcaptureproxy-1.1.4-py3-none-any.whl", hash = "sha256:efd1a3077957e3d0269dacbc7c1252b47c4f711e22ce1474ec86f5e1cd584d60"},
-    {file = "authcaptureproxy-1.1.4.tar.gz", hash = "sha256:6777309a96734076da3c51e8f21d716b785af7d14fe76e90738e6a2c6300d3e4"},
-]
+python-versions = "^3.7"
+files = []
+develop = false
 
 [package.dependencies]
-aiohttp = ">=3,<4"
-beautifulsoup4 = ">=4,<5"
+aiohttp = "^3"
+beautifulsoup4 = "^4"
 httpx = "*"
 importlib-metadata = ">=3.4.0"
-multidict = ">=6,<7"
-typer = ">=0.3,<1.0"
-yarl = ">=1,<2"
+multidict = "^6"
+typer = ">=0.3, <1.0"
+yarl = "^1"
+
+[package.extras]
+all = []
+
+[package.source]
+type = "git"
+url = "https://github.com/nefarium/auth_capture_proxy.git"
+reference = "main"
+resolved_reference = "13ae46611b1f5ce2c9da2fc642a0b37656a41431"
 
 [[package]]
 name = "beautifulsoup4"
@@ -2034,4 +2041,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "0be3096753b2f6e43990e8b61049ef57d148bd1b1b5a7d0035c8680bf5e6ae10"
+content-hash = "7c8f993ea10c02d4ce0fc3ba599e6e6493c214f412fdef2ead2d4463023173db"

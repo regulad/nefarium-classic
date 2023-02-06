@@ -10,7 +10,7 @@ packages = [{include = "nefarium", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 aiohttp = {extras = ["speedups"], version = "^3.8.3"}
-authcaptureproxy = "^1.1.4"  # cannot be py.typed because of authcaptureproxy
+authcaptureproxy = { git = "https://github.com/nefarium/auth_capture_proxy.git", branch = "main" }
 motor = "^3.1.1"
 pymongo = "^4.3.3"
 httpx = "^0.23.3"

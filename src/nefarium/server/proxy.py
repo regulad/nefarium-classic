@@ -96,7 +96,7 @@ def get_test_response(
     """
     auth_goals: AuthGoals = flow["auth_goals"]
 
-    async def test_response(
+    async def auth_test(
         resp: httpx.Response, data: dict[Text, Any], query: dict[Text, Any]
     ) -> URL | None | str:
         if auth_goals is None:
@@ -301,33 +301,29 @@ def get_test_response(
 
         return URL(redirect_uri).with_query(final_query)
 
-    return test_response
+    return auth_test
 
 
-def get_httpx_client(flow: Flow, *args, **kwargs) -> httpx.AsyncClient:
+def get_httpx_client_factory(
+    flow: Flow, *args, **kwargs
+) -> Callable[[], httpx.AsyncClient]:
     proxies = {}
 
-    # Proxy
-    if (
-        "request_proxy" in flow
-        and (proxy := truthy_string(flow.get("request_proxy"))) is not None  # type: ignore # manually checked
-    ):  # type: ignore # manually checked
-        proxies["http"] = proxy
-        proxies["https"] = proxy
-        logger.warning(
-            f"Using proxy from flow config: {proxy}. This could get overwritten by AuthCaptureProxy."
-        )
-    elif (proxy := truthy_string(environ.get("NEFARIUM_PROXY"))) is not None:  # type: ignore # manually checked
-        proxies["http"] = proxy
-        proxies["https"] = proxy
-        logger.warning(
-            f"Using proxy from environment variable: {proxy}. This could get overwritten by AuthCaptureProxy."
-        )
+    if "proxies" in kwargs:
+        proxies.update(kwargs["proxies"])
+        del kwargs["proxies"]
+
+    if flow["proxy_configuration"]["request_proxies"]:
+        proxies.update(flow["proxy_configuration"]["request_proxies"])
 
     if proxies:
         kwargs["proxies"] = proxies
 
-    return httpx.AsyncClient(*args, **kwargs)  # type: ignore # manually checked
+    def factory() -> httpx.AsyncClient:
+        logger.debug(f"Creating HTTPX client with args {args} and kwargs {kwargs}")
+        return httpx.AsyncClient(*args, **kwargs)  # type: ignore # manually checked
+
+    return factory
 
 
 def create_proxy(
@@ -347,17 +343,16 @@ def create_proxy(
     :param cookie_jar: The cookie jar to use for the proxy.
     :return:
     """
+    proxy_configuration = flow["proxy_configuration"]
+    filtering = proxy_configuration["filtering"]
+
+    proxy_target = URL(flow["proxy_configuration"]["target"])
+
     proxy = AuthCaptureProxy(
         base_url,
-        # should be called on first go, so this will be correct unless the proxy cache rolls over which should be rare
-        proxy_target := URL(flow["proxy_target"]),
-        session=get_httpx_client(flow, cookies=cookie_jar),
-        # note: this client may get clobbered by the AuthCaptureProxy so proxies may be unreliable?
+        proxy_target,
+        session_factory=get_httpx_client_factory(flow, cookies=cookie_jar),
     )
-
-    proxy.__process_lock = asyncio.Lock()
-    proxy.__initial_host_url = proxy._host_url
-    proxy.__initial_proxy_url = proxy._proxy_url
 
     proxy._active = True  # type: ignore # we don't attach the proxy to a runner so we need to do it manually
 
@@ -375,27 +370,32 @@ def create_proxy(
             "test_auth": get_test_response(flow, session, update_db=update_auth_state),
         }
 
-    if flow["filter_response"]:
+    modifiers = {}
+
+    if filtering["html"]:
         html_modifiers = {  # type: ignore  # PyCharm is ANGRY
             "post_authcaptureproxy_fixes": make_async(
-                partial(fix_html_bs4, base_url, proxy_target),  # type: ignore  # mypy is ANGRY
+                partial(fix_html_bs4, base_url, proxy_target, proxy_configuration),  # type: ignore  # mypy is ANGRY
+            ),
+        }
+        modifiers["text/html"] = html_modifiers
+        modifiers["application/xhtml+xml"] = html_modifiers
+
+    if filtering["css"]:
+        modifiers["text/css"] = {
+            "fix_css": make_async(
+                partial(fix_css_cssutils, base_url, proxy_target, proxy_configuration)
             ),
         }
 
-        proxy.modifiers = {
-            "text/html": html_modifiers,
-            "application/xhtml+xml": html_modifiers,
-            "text/javascript": {
-                "fix_javascript": make_async(
-                    partial(fix_javascript, base_url, proxy_target),
-                ),
-            },
-            "text/css": {
-                "fix_css": make_async(
-                    partial(fix_css_cssutils, base_url, proxy_target)
-                ),
-            },
+    if filtering["js"]:
+        modifiers["application/javascript"] = {
+            "fix_js": make_async(
+                partial(fix_javascript, base_url, proxy_target, proxy_configuration)
+            ),
         }
+
+    proxy.modifiers = modifiers
 
     return proxy
 

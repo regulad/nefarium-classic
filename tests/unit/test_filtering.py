@@ -27,6 +27,8 @@ from nefarium.server import (
     fix_string_literal,
 )
 
+from .. import dummy_proxy_configuration
+
 
 @pytest.mark.parametrize(
     "proxy_url, request_url, url, fixed_url",
@@ -82,7 +84,9 @@ from nefarium.server import (
     ],
 )
 def test_url_filter(proxy_url, request_url, url, fixed_url):
-    assert fix_url(proxy_url, request_url, url) == fixed_url
+    assert (
+        fix_url(proxy_url, request_url, dummy_proxy_configuration(), url) == fixed_url
+    )
 
 
 @pytest.mark.parametrize(
@@ -103,7 +107,10 @@ def test_url_filter(proxy_url, request_url, url, fixed_url):
     ],
 )
 def test_literal_fiter(proxy_url, request_url, literal, fixed_literal):
-    assert fix_string_literal(proxy_url, request_url, literal) == fixed_literal
+    assert (
+        fix_string_literal(proxy_url, request_url, dummy_proxy_configuration(), literal)
+        == fixed_literal
+    )
 
 
 @pytest.mark.parametrize(
@@ -166,10 +173,17 @@ def test_literal_fiter(proxy_url, request_url, literal, fixed_literal):
 )
 def test_css_cssutils_filter(proxy_url, request_url, inline, css, fixed_css):
     if inline:
-        assert fix_css_cssutils(proxy_url, request_url, css, inline=inline) == fixed_css
+        assert (
+            fix_css_cssutils(
+                proxy_url, request_url, dummy_proxy_configuration(), css, inline=inline
+            )
+            == fixed_css
+        )
     else:
         assert normalize_css(
-            fix_css_cssutils(proxy_url, request_url, css, inline=inline)
+            fix_css_cssutils(
+                proxy_url, request_url, dummy_proxy_configuration(), css, inline=inline
+            )
         ) == normalize_css(fixed_css)
 
 
@@ -191,7 +205,10 @@ def test_css_cssutils_filter(proxy_url, request_url, inline, css, fixed_css):
     ],
 )
 def test_js_filter(proxy_url, request_url, js, fixed_js):
-    assert fix_javascript(proxy_url, request_url, js) == fixed_js
+    assert (
+        fix_javascript(proxy_url, request_url, dummy_proxy_configuration(), js)
+        == fixed_js
+    )
 
 
 @pytest.mark.parametrize(
@@ -226,6 +243,6 @@ def test_js_filter(proxy_url, request_url, js, fixed_js):
     ],
 )
 def test_html_bs4_filter(proxy_url, request_url, html, fixed_html):
-    assert normalize_html(fix_html_bs4(proxy_url, request_url, html)) == normalize_html(
-        fixed_html
-    )
+    assert normalize_html(
+        fix_html_bs4(proxy_url, request_url, dummy_proxy_configuration(), html)
+    ) == normalize_html(fixed_html)

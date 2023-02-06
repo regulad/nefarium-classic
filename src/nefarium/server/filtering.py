@@ -25,62 +25,75 @@ from bs4 import BeautifulSoup
 from cssutils.css import CSSStyleSheet
 from yarl import URL
 
+from ..types import ProxyConfiguration
 from ..helpers import truthy_string, is_url, wrap_css_inline, unwrap_css_inline
 
 logger = getLogger(__name__)
 
-ATTEMPT_TO_KEEP_URLS_IN_DOMAIN = False
 
-
-# required for proxy.FOLLOW_REDIRECTS_OUT_OF_DOMAIN
-
-
-def fix_html_bs4(proxy_url: URL, request_url: URL, html: str) -> str:
+def fix_html_bs4(
+    proxy_url: URL, request_url: URL, proxy_config: ProxyConfiguration, html: str
+) -> str:
     """
     Fix HTML to work with the proxy.
+    :param proxy_config: The proxy configuration.
     :param proxy_url: The URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
     :param request_url: The URL that the proxy is proxying. This doesn't change. i.e. https://example.com/login
     :param html: The HTML.
     :return: The fixed HTML.
     """
-    soups = BeautifulSoup(html, "html.parser")
+    filter_config = proxy_config["filtering"]
 
-    for tag in soups.find_all("script"):
-        if tag.has_attr("src"):
-            tag["src"] = fix_url(proxy_url, request_url, tag["src"])
-        elif tag.string is not None:
-            tag.string = fix_javascript(proxy_url, request_url, tag.string)
+    soups = BeautifulSoup(html, "html.parser")
 
     for tag in soups.find_all("link"):
         if tag.has_attr("href"):
-            tag["href"] = fix_url(proxy_url, request_url, tag["href"])
+            tag["href"] = fix_url(proxy_url, request_url, proxy_config, tag["href"])
 
     for tag in soups.find_all("img"):
         if tag.has_attr("src"):
-            tag["src"] = fix_url(proxy_url, request_url, tag["src"])
+            tag["src"] = fix_url(proxy_url, request_url, proxy_config, tag["src"])
 
     for tag in soups.find_all("a"):
         if tag.has_attr("href"):
-            tag["href"] = fix_url(proxy_url, request_url, tag["href"])
+            tag["href"] = fix_url(proxy_url, request_url, proxy_config, tag["href"])
 
-    for tag in soups.find_all("style"):
-        tag.string = fix_css_cssutils(proxy_url, request_url, tag.string)
+    if filter_config["js"]:
+        for tag in soups.find_all("script"):
+            if tag.has_attr("src"):
+                tag["src"] = fix_url(proxy_url, request_url, proxy_config, tag["src"])
+            elif tag.string is not None:
+                tag.string = fix_javascript(
+                    proxy_url, request_url, proxy_config, tag.string
+                )
 
-    for tag in soups.find_all(
-        attrs={"style": lambda style: truthy_string(style) is not None}
-    ):
-        tag["style"] = fix_css_cssutils(
-            proxy_url, request_url, tag["style"], inline=True
-        )
+    if filter_config["css"]:
+        for tag in soups.find_all("style"):
+            tag.string = fix_css_cssutils(
+                proxy_url, request_url, proxy_config, tag.string
+            )
+
+        for tag in soups.find_all(
+            attrs={"style": lambda style: truthy_string(style) is not None}
+        ):
+            tag["style"] = fix_css_cssutils(
+                proxy_url, request_url, proxy_config, tag["style"], inline=True
+            )
 
     return str(soups)
 
 
 def fix_css_cssutils(
-    proxy_url: URL, request_url: URL, css: str, *, inline: bool = False
+    proxy_url: URL,
+    request_url: URL,
+    proxy_config: ProxyConfiguration,
+    css: str,
+    *,
+    inline: bool = False,
 ) -> str:
     """
     Fix CSS to work with the proxy.
+    :param proxy_config: The proxy configuration.
     :param proxy_url: The URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
     :param request_url: The URL that the proxy is proxying. This doesn't change. i.e. https://example.com/login
     :param css: The CSS to fix.
@@ -96,7 +109,7 @@ def fix_css_cssutils(
             for prop in rule.style:
                 prop.value = re.sub(
                     r"url\(([^)]+)\)",
-                    lambda match: f"url({fix_string_literal(proxy_url, request_url, match.group(1))})",
+                    lambda match: f"url({fix_string_literal(proxy_url, request_url, proxy_config, match.group(1))})",
                     prop.value,
                 )
 
@@ -105,9 +118,12 @@ def fix_css_cssutils(
     return decoded if not inline else unwrap_css_inline(decoded)
 
 
-def fix_javascript(proxy_url: URL, request_url: URL, javascript: str) -> str:
+def fix_javascript(
+    proxy_url: URL, request_url: URL, proxy_config: ProxyConfiguration, javascript: str
+) -> str:
     """
     Fix javascript to work with the proxy.
+    :param proxy_config: The proxy configuration.
     :param proxy_url: The URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
     :param request_url: The URL that the proxy is proxying. This doesn't change. i.e. https://example.com/login
     :param javascript: A string of JavaScript to fix.
@@ -118,15 +134,23 @@ def fix_javascript(proxy_url: URL, request_url: URL, javascript: str) -> str:
     # if a developer of a website did "https://exam" + "ple.com", we would be defeated.
     return re.sub(
         r"\"(\\.|[^\"\\])*\"|'(\\.|[^'\\])*'|`[^`]*`",
-        lambda match: fix_string_literal(proxy_url, request_url, match.group(0)),
+        lambda match: fix_string_literal(
+            proxy_url, request_url, proxy_config, match.group(0)
+        ),
         javascript,
     )
 
 
-def fix_string_literal(proxy_url: URL, request_url: URL, string_literal: str) -> str:
+def fix_string_literal(
+    proxy_url: URL,
+    request_url: URL,
+    proxy_config: ProxyConfiguration,
+    string_literal: str,
+) -> str:
     """
     Fixes a single string literal in JavaScript or CSS.
     Note that this method always keeps quotes.
+    :param proxy_config: The proxy configuration.
     :param proxy_url: The URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
     :param request_url: The URL that the proxy is proxying. This doesn't change. i.e. https://example.com/login
     :param string_literal: A string literal in JavaScript. i.e. "https://example.com/login/resource"
@@ -138,26 +162,39 @@ def fix_string_literal(proxy_url: URL, request_url: URL, string_literal: str) ->
         quoteless = string_literal[1:-1].lstrip("\\")
 
         if is_url(quoteless):
-            return f"{string_literal[0]}{fix_url(proxy_url, request_url, quoteless)}{string_literal[-1]}"
+            return f"{string_literal[0]}{fix_url(proxy_url, request_url, proxy_config, quoteless)}{string_literal[-1]}"
         else:
             return string_literal
     else:
-        return fix_url(proxy_url, request_url, string_literal)
+        return fix_url(proxy_url, request_url, proxy_config, string_literal)
 
 
 @overload
-def fix_url(proxy_url: URL, request_url: URL, url: str) -> str:
+def fix_url(
+    proxy_url: URL,
+    request_url: URL,
+    proxy_config: ProxyConfiguration,
+    url: str,
+) -> str:
     ...
 
 
 @overload
-def fix_url(proxy_url: URL, request_url: URL, url: URL) -> URL:
+def fix_url(
+    proxy_url: URL,
+    request_url: URL,
+    proxy_config: ProxyConfiguration,
+    url: URL,
+) -> URL:
     ...
 
 
-def fix_url(proxy_url: URL, request_url: URL, url: str | URL) -> str | URL:
+def fix_url(
+    proxy_url: URL, request_url: URL, proxy_config: ProxyConfiguration, url: str | URL
+) -> str | URL:
     """
     Fix a URL to work with the proxy. This method will be executed in an async context.
+    :param proxy_config: The proxy configuration.
     :param proxy_url: The URL of the proxy. i.e. http://localhost:8080/flows/1234/session/1234/auth
     :param request_url: The URL of the request. i.e. https://example.com/login
     :param url: The URL to correct for the proxy. i.e. /login/resource
@@ -174,23 +211,20 @@ def fix_url(proxy_url: URL, request_url: URL, url: str | URL) -> str | URL:
         # this branch fixes relative paths, so they don't go to the root but instead the current session auth
         parsed_url = proxy_url.with_path(proxy_url.path + parsed_url.path)
     elif parsed_url.host is not None and request_url.host is not None:
-        parsed_result = tldextract.extract(parsed_url.host)
-        request_result = tldextract.extract(request_url.host)
-
-        if parsed_result.registered_domain != request_result.registered_domain:
+        if parsed_url.host != request_url.host:
             # weird. we got redirected out.
             # NOTICE: authcaptureproxy sometimes redirects from this. if it does, we are fine.
             # if it doesn't, we are screwed and this URL will likely not work.
-            logger.debug(
-                f"Got redirected out of the domain! {request_url} -> {parsed_url}"
-            )
             # we will still do the following just incase it works
-            if ATTEMPT_TO_KEEP_URLS_IN_DOMAIN:
+            if proxy_config["proxy_cdns"]:
                 parsed_url = proxy_url.with_path(
-                    f"{proxy_url.path.removesuffix('auth')}out/{parsed_url.scheme}/{parsed_url.host}"
+                    f"{proxy_url.path.removesuffix('auth')}cdn/{parsed_url.scheme}/{parsed_url.host}"
                     + parsed_url.path
                 )
             else:
+                logger.debug(
+                    f"Got redirected out of the domain! {request_url} -> {parsed_url}"
+                )
                 pass  # just allow it to work, for css and js and whatever
         else:
             # this request will be handled normally.

@@ -7,8 +7,7 @@
     "required": [
         "name",
         "redirect_uri_domains",
-        "proxy_target",
-        "filter_response"
+        "proxy_configuration"
     ],
     "definitions": {
         "authFlow": {
@@ -91,6 +90,57 @@
                     "minItems": 0
                 }
             }
+        },
+        "filter_configuration": {
+            "type": "object",
+            "required": [
+                "html",
+                "js",
+                "css"
+            ],
+            "properties": {
+                "html": {
+                    "type": "boolean",
+                    "description": "If HTML should be filtered by the proxy. This should be enabled if the proxy target is a web page."
+                },
+                "js": {
+                    "type": "boolean",
+                    "description": "If JavaScript should be filtered by the proxy. This should be enabled if the proxy target is a web page. You may want to consider disabling this if the websites uses a CDN that does not call any APIs."
+                },
+                "css": {
+                    "type": "boolean",
+                    "description": "If CSS should be filtered by the proxy. This should be enabled if the proxy target is a web page and uses images from the CSS. While you shouldn't disable this, it can be disabled if the website does not use any images in the CSS."
+                }
+            }
+        },
+        "proxy_configuration": {
+            "type": "object",
+            "required": [
+                "filtering",
+                "target",
+                "proxy_cdns",
+                "request_proxies"
+            ],
+            "properties": {
+                "filtering": {
+                    "$ref": "#/definitions/filter_configuration",
+                    "description": "The filtering configuration for the proxy."
+                },
+                "target": {
+                    "type": "string",
+                    "description": "The target URL that the proxy will forward requests to."
+                },
+                "proxy_cdns": {
+                    "type": "boolean",
+                    "description": "If the proxy should proxy CDN requests. This has a big performance impact and should only be enabled if the proxy target is a web page that uses a CDN that delivers assets that help interact with proxies. A CDN in this context refers to any webpage outside of the proxy target that is used to deliver assets to the user agent."
+                },
+                "request_proxies": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     },
     "properties": {
@@ -110,21 +160,13 @@
             "minItems": 1,
             "description": "A list of domains that are allowed to be used as the redirect_uri in the OAuth2 flow. Use * to allow all URIs or use *.example.com to allow all subdomains."
         },
-        "proxy_target": {
-            "type": "string",
-            "description": "The target URL that the proxy will forward requests to."
-        },
         "auth_goals": {
             "$ref": "#/definitions/authFlow",
             "description": "The auth goals that the flow will attempt to satisfy and return to the redirect URI."
         },
-        "request_proxy": {
-            "type": ["string", "null"],
-            "description": "The proxy that will be used to make requests to the proxy_target and other possible pages. SOCKS4/5, HTTP, and HTTPS proxies are compatible. Inline authentication."
-        },
-        "filter_response": {
-            "type": "boolean",
-            "description": "If true, the proxy will filter the response body to use corrected URLs that keep the user in the proxy."
+        "proxy_configuration": {
+            "$ref": "#/definitions/proxy_configuration",
+            "description": "The proxy configuration for the flow."
         },
         "redirect_code": {
             "type": "boolean",

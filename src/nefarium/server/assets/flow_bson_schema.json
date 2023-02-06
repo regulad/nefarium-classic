@@ -4,8 +4,7 @@
         "_id",
         "name",
         "redirect_uri_domains",
-        "proxy_target",
-        "filter_response"
+        "proxy_configuration"
     ],
     "properties": {
         "_id": {
@@ -23,9 +22,6 @@
                 "bsonType": "string"
             },
             "minItems": 1
-        },
-        "proxy_target": {
-            "bsonType": "string"
         },
         "auth_goals": {
             "bsonType": ["object", "null"],
@@ -108,11 +104,47 @@
                 }
             }
         },
-        "request_proxy": {
-            "bsonType": ["string", "null"]
-        },
-        "filter_response": {
-            "bsonType": "bool"
+        "proxy_configuration": {
+            "bsonType": "object",
+            "required": [
+                "filtering",
+                "target",
+                "proxy_cdns",
+                "request_proxies"
+            ],
+            "properties": {
+                "filtering": {
+                    "bsonType": "object",
+                    "required": [
+                        "html",
+                        "css",
+                        "js"
+                    ],
+                    "properties": {
+                        "html": {
+                            "bsonType": "bool"
+                        },
+                        "css": {
+                            "bsonType": "bool"
+                        },
+                        "js": {
+                            "bsonType": "bool"
+                        }
+                    }
+                },
+                "target": {
+                    "bsonType": "string"
+                },
+                "proxy_cdns": {
+                    "bsonType": "bool"
+                },
+                "request_proxies": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     }
 }

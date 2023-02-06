@@ -72,6 +72,28 @@ class AuthGoals(TypedDict):
     # The Redirect URI will be redirected to when all of declared criteria are met.
 
 
+class ResponseFilterConfiguration(TypedDict):
+    """
+    ResponseFilterConfiguration is a TypedDict that represents the configuration of the filters applied to a response.
+    """
+
+    html: bool  # whether to filter the response body when it is html
+    js: bool  # whether to filter the response body when it is javascript
+    css: bool  # whether to filter the response body when it is css
+
+
+class ProxyConfiguration(TypedDict):
+    """
+    ProxyConfiguration is a TypedDict that represents the configuration of an AuthCaptureProxy in a flow.
+    """
+
+    filtering: ResponseFilterConfiguration
+    target: str
+    proxy_cdns: bool  # whether to proxy cdns
+    # proxing CDNs has a LARGE performance impact, but it can allow some flows that would otherwise not work to work
+    request_proxies: dict  # proxies to use for requests
+
+
 class Flow(TypedDict):
     """
     Flow is a TypedDict that represents an auth flow.
@@ -81,10 +103,8 @@ class Flow(TypedDict):
     name: str
     description: NotRequired[str]
     redirect_uri_domains: list[str]
-    proxy_target: str
     auth_goals: NotRequired[AuthGoals]
-    request_proxy: NotRequired[str]
-    filter_response: bool  # whether to filter the response body
+    proxy_configuration: ProxyConfiguration
     redirect_code: NotRequired[bool]
 
 
@@ -103,4 +123,10 @@ class Session(TypedDict):
     created_at: datetime
 
 
-__all__ = ("Flow", "Session", "AuthGoals")
+__all__ = (
+    "Flow",
+    "Session",
+    "AuthGoals",
+    "ProxyConfiguration",
+    "ResponseFilterConfiguration",
+)

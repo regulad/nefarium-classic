@@ -12,11 +12,18 @@
         "required_query_params_regex": {},
         "status_codes": []
     },
+    "proxy_configuration": {
+        "target": "https://twitter.com/i/flow/login",
+        "filtering": {
+            "html": true,
+            "css": true,
+            "js": true
+        },
+        "proxy_cdns": true,
+        "request_proxies": {}
+    },
     "description": "Twitter Login",
-    "filter_response": true,
     "name": "Twitter",
-    "proxy_target": "https://twitter.com/i/flow/login",
     "redirect_uri_domains": ["*"],
-    "redirect_code": true,
-    "request_proxy": null
+    "redirect_code": true
 }

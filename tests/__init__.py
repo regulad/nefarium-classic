@@ -19,7 +19,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from nefarium import AuthGoals, Flow, Session
+from nefarium import AuthGoals, Flow, Session, ProxyConfiguration
 
 
 def dummy_auth_goals() -> AuthGoals:
@@ -38,15 +38,27 @@ def dummy_auth_goals() -> AuthGoals:
     }
 
 
+def dummy_proxy_configuration() -> ProxyConfiguration:
+    return dummy_flow()["proxy_configuration"]
+
+
 def dummy_flow() -> Flow:
     return {
         "_id": ObjectId("1" * 24),
         "name": "Test Flow",
         "description": "This is a test flow.",
         "redirect_uri_domains": ["*"],
-        "proxy_target": "https://example.com",
         "auth_goals": dummy_auth_goals(),
-        "filter_response": True,
+        "proxy_configuration": {
+            "filtering": {
+                "html": True,
+                "css": True,
+                "js": True,
+            },
+            "target": "https://example.com",
+            "proxy_cdns": True,
+            "request_proxies": {},
+        },
     }
 
 
@@ -62,4 +74,9 @@ def dummy_session() -> Session:
     }
 
 
-__all__ = ("dummy_auth_goals", "dummy_flow", "dummy_session")
+__all__ = (
+    "dummy_auth_goals",
+    "dummy_flow",
+    "dummy_session",
+    "dummy_proxy_configuration",
+)
