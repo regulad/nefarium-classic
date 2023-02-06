@@ -1,13 +1,15 @@
-# nefarium
+# nefarium-classic
 
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![wakatime](https://wakatime.com/badge/github/regulad/nefarium.svg)](https://wakatime.com/badge/github/regulad/nefarium)
-[![CI status](https://github.com/nefarium/nefarium/actions/workflows/ci.yml/badge.svg)](https://github.com/nefarium/nefarium/actions/workflows/ci.yml)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/nefarium/nefarium/main.svg)](https://results.pre-commit.ci/latest/github/nefarium/nefarium/main)
-[![Docker status](https://github.com/nefarium/nefarium/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/nefarium/nefarium/actions/workflows/docker-publish.yml)
+[![CI status](https://github.com/nefarium/nefarium-classic/actions/workflows/ci.yml/badge.svg)](https://github.com/nefarium/nefarium-classic/actions/workflows/ci.yml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/nefarium/nefarium-classic/main.svg)](https://results.pre-commit.ci/latest/github/nefarium/nefarium-classic/main)
+[![Docker status](https://github.com/nefarium/nefarium-classic/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/nefarium/nefarium-classic/actions/workflows/docker-publish.yml)
 [![Discord](https://img.shields.io/discord/1071033007663751179?logo=discord)](https://discord.gg/vPvcNb9RNx)
 
-**nefarium** provides an API similar to OAuth for websites that do not support it, letting you authenticate and make your own API middlemen.
+**nefarium-classic** provides an API similar to OAuth for websites that do not support it, letting you authenticate and make your own API middlemen.
+
+nefarium classic uses a proxy-like interface for imitating a website to the user agent. This has a low performance overhead for the user, but a high performance overhead for nefarium. This is why nefarium classic is not recommended for high-traffic websites.
 
 ## Installation
 
