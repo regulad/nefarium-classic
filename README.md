@@ -7,17 +7,7 @@
 [![Docker status](https://github.com/nefarium/nefarium/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/nefarium/nefarium/actions/workflows/docker-publish.yml)
 [![Discord](https://img.shields.io/discord/1071033007663751179?logo=discord)](https://discord.gg/vPvcNb9RNx)
 
-nefarium provides an API similar to OAuth for websites that do not support it.
-
-Previously known as "the Me In The Middle auth backend" or "MeITM auth"
-
-Inspired & powered by the following projects:
-
-* [`authcaptureproxy`](https://pypi.org/project/authcaptureproxy/)
-  * [`alexapy`](https://pypi.org/project/alexapy/)
-  * [`alexa_media_player`](https://github.com/custom-components/alexa_media_player)
-  * [Home Assistant](https://www.home-assistant.io)
-
+**nefarium** provides an API similar to OAuth for websites that do not support it, letting you authenticate and make your own API middlemen.
 
 ## Installation
 
@@ -29,23 +19,6 @@ If you would not like to use Docker, you can install the package with poetry and
 poetry install --only main
 poetry run nefarium
 ```
-
-## TODO
-
-Highest priority first.
-
-- [ ] Integration testing
-- [ ] Easy flows for websites that don't support OAuth:
-  - [x] Amazon (alexapy) (basically just translating an authcaptureproxy demo)
-  - [ ] Twitter (should not be too hard) (funny, only dropped official API & OAuth support recently)
-- [x] Setup pre-commit
-- [ ] Public instance with Heroku
-- [x] CI/CD with GitHub Actions
-- [ ] Bypass cloudflare challenges
-- [ ] Tricky flows for websites that don't support OAuth:
-  - [ ] TikTok (might be a bit tricky)
-  - [ ] Discord (actually does support OAuth, but its scopes are extremely restrictive. we just need the user token) (stretch goal, will take a lot of work)
-- [ ] Flow management endpoints
 
 ## Configuration
 
@@ -73,7 +46,7 @@ Use the [`docker-compose.yml`](./docker-compose.yml) to configure the nefarium b
 First, install the dependencies:
 
 ```bash
-poetry install --no-root --with dev
+poetry install --no-root --with dev --without test
 ```
 
 Second, install the pre-commit hooks:
@@ -93,3 +66,20 @@ poetry run tox
 ```
 
 This will run everything, including linters, tests, typing tests, and coverage.
+
+## TODO
+
+Highest priority first.
+
+- [ ] Integration testing
+- [ ] Ephemeral Tor proxy support
+- [ ] Easy flows for websites that don't support OAuth:
+  - [x] Amazon (alexapy) (basically just translating an authcaptureproxy demo)
+- [x] Setup pre-commit
+- [ ] Public instance with Heroku
+- [x] CI/CD with GitHub Actions
+- [ ] Bypass cloudflare challenges
+- [ ] Tricky flows for websites that don't support OAuth (pretty much anything that uses JS & APIs heavily):
+  - [ ] TikTok (might be a bit tricky)
+  - [ ] Twitter (uses react)
+  - [ ] Discord (broad scope and the user's token, EXTREMELY JS HEAVY)
