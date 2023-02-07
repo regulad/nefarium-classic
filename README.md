@@ -68,20 +68,3 @@ poetry run tox
 ```
 
 This will run everything, including linters, tests, typing tests, and coverage.
-
-## TODO
-
-Highest priority first.
-
-- [ ] Integration testing
-- [ ] Ephemeral Tor proxy support
-- [ ] Easy flows for websites that don't support OAuth:
-  - [x] Amazon (alexapy) (basically just translating an authcaptureproxy demo)
-- [x] Setup pre-commit
-- [ ] Public instance with Heroku
-- [x] CI/CD with GitHub Actions
-- [ ] Bypass cloudflare challenges
-- [ ] Tricky flows for websites that don't support OAuth (pretty much anything that uses JS & APIs heavily):
-  - [ ] TikTok (might be a bit tricky)
-  - [ ] Twitter (uses react)
-  - [ ] Discord (broad scope and the user's token, EXTREMELY JS HEAVY)

@@ -41,6 +41,7 @@ tox-gh-actions = "^3.0.0"
 pytest = "^7"
 pytest-asyncio = "^0.20.3"
 pytest-motor = "^0.3.0"
+coverage = "^7.1.0"
 
 [tool.poetry.group.type.dependencies]
 mypy = "^0.991"
