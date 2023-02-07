@@ -40,3 +40,6 @@ jobs:
       run: source $VENV
     - name: Run tox tests
       run: poetry run tox
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      if: ${{ matrix.os }} == "ubuntu-latest"
