@@ -1,0 +1,46 @@
+{
+    "auth_goals": {
+        "goal_urls": ["https://www.tiktok.com/login"],
+        "return_body_requires_type": null,
+        "return_body_requires_json_schema": null,
+        "return_body_requires_regex": null,
+        "required_cookies": [
+            "msToken",
+            "tt-target-idc",
+            "store-country-code-src",
+            "store-country-code",
+            "store-idc",
+            "reg-store-region",
+            "ssid_ucp_v1",
+            "sessionid_ss",
+            "sessionid",
+            "sid_tt",
+            "uid_tt_ss",
+            "uid_tt",
+            "sid_guard",
+            "cmpl_token",
+            "odin_tt",
+            "s_v_web_id"
+        ],
+        "required_cookies_regex": {},
+        "required_headers": [],
+        "required_headers_regex": {},
+        "required_query_params": [],
+        "required_query_params_regex": {},
+        "status_codes": []
+    },
+    "proxy_configuration": {
+        "target": "https://www.tiktok.com/login",
+        "filtering": {
+            "html": true,
+            "css": true,
+            "js": false
+        },
+        "proxy_cdns": true,
+        "request_proxies": {}
+    },
+    "description": "TikTok Login - DOES NOT WORK",
+    "name": "TikTok",
+    "redirect_uri_domains": ["*"],
+    "redirect_code": true
+}
