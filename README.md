@@ -1,10 +1,11 @@
 # nefarium-classic
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Abandoned – Initial development has started, but there has not yet been a stable, usable release; the project has been abandoned and the author(s) do not intend on continuing development.](https://www.repostatus.org/badges/latest/abandoned.svg)](https://www.repostatus.org/#abandoned)
 [![wakatime](https://wakatime.com/badge/github/regulad/nefarium.svg)](https://wakatime.com/badge/github/regulad/nefarium)
+[![codecov](https://codecov.io/gh/nefarium/nefarium-classic/branch/main/graph/badge.svg?token=0JQ3QN7PTZ)](https://codecov.io/gh/nefarium/nefarium-classic)
 [![CI status](https://github.com/nefarium/nefarium-classic/actions/workflows/ci.yml/badge.svg)](https://github.com/nefarium/nefarium-classic/actions/workflows/ci.yml)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/nefarium/nefarium-classic/main.svg)](https://results.pre-commit.ci/latest/github/nefarium/nefarium-classic/main)
 [![Docker status](https://github.com/nefarium/nefarium-classic/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/nefarium/nefarium-classic/actions/workflows/docker-publish.yml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/nefarium/nefarium-classic/main.svg)](https://results.pre-commit.ci/latest/github/nefarium/nefarium-classic/main)
 [![Discord](https://img.shields.io/discord/1071033007663751179?logo=discord)](https://discord.gg/vPvcNb9RNx)
 
 **nefarium-classic** provides an API similar to OAuth for websites that do not support it, letting you authenticate and make your own API middlemen.
