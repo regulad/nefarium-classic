@@ -29,13 +29,14 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
     - name: Load cached venv
-      id: cached-pip-wheels
+      id: cached-poetry-dependencies
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ./.venv
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
-      run: poetry install --no-interaction --with dev,ci  # needs to be editable for tox?? so weird
+      run: poetry install --no-interaction --with dev,ci
+      if: ${{ steps.cached-poetry-dependencies.outputs.cache-hit != 'true' }}
     - name: Activate virtualenv
       run: source $VENV
     - name: Run tox tests
@@ -46,6 +47,6 @@ jobs:
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
-        fail_ci_if_error: true # optional (default = false)
+        files: ./.coverage
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
